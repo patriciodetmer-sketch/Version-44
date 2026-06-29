@@ -86,6 +86,34 @@ sensible (caso La Parva). El núcleo limpio son los ~102 disponibles.
 Nota: excluir falsos disponibles que son fajas de camino/FFCC (p.ej. Chiguayante
 "camino público a Concepción", 127.400 m²).
 
+## 6 bis. Valorización de orden de magnitud (joyas disponibles)
+
+Supuestos: valor de suelo de referencia por comuna (UF/m², mercado 2026);
+1 UF = $40.408; USD ≈ $950. Estimación, NO tasación.
+
+| Predio | Comuna | UF/m² | Valor (US$ MM) |
+|---|---|--:|--:|
+| Teatinos 120 | Santiago centro | 28–50 | 48 – 86 |
+| Pedro Montt / Isabel Riquelme | Santiago/PAC | 12–22 | 48 – 88 |
+| Vicuña Mackenna 5065 | San Joaquín | 14–22 | 50 – 79 |
+| Carlos Valdovinos 279 | San Joaquín | 14–22 | 43 – 68 |
+| San José 1053 | Independencia | 18–30 | 43 – 72 |
+| Santa Amalia 1022 | La Florida | 11–18 | 20 – 33 |
+| Fundo Cerro Negro | San Bernardo | 3–7 | 12 – 29 |
+| Camino a Melipilla 641 | Padre Hurtado | 4–9 | 10 – 22 |
+| Ruta G-98-F lote B | Cartagena | 2–5 | 5 – 13 |
+| Armando Celis lotes 1-7 | El Tabo | 2–5 | 5 – 11 |
+| Ignacio Vicuña | San Antonio | 3–7 | 3 – 8 |
+| **Subtotal 11 joyas urbanas** | | | **≈ US$ 288 – 509 MM** |
+
+Aparte: Hijuela La Obra de Chena (San Bernardo, 449,75 ha) ≈ US$ 96–383 MM
+con alta incertidumbre (probable terreno de cerro/no urbanizable).
+
+Lectura: solo 11 lotes urbanos disponibles igualan o superan la meta de
+US$200–300 MM del plan completo; el valor se concentra en Santiago centro y
+pericentro. Caveat: valores brutos de suelo, no tasaciones; UF/m² de referencia,
+no avalúos SII.
+
 ## 7. Tarapacá (capa propia)
 
 315 predios; 47% afectación/destinación (en uso, sobre todo fajas viales MOP),
