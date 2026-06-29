@@ -114,6 +114,24 @@ US$200–300 MM del plan completo; el valor se concentra en Santiago centro y
 pericentro. Caveat: valores brutos de suelo, no tasaciones; UF/m² de referencia,
 no avalúos SII.
 
+### Universo vendible filtrado (CSV)
+
+El listado completo de predios vendibles (Tier 1 y 2 de RM, Valparaíso y Biobío)
+está en `predios_fiscales_vendibles.csv` (838 predios, valor bruto teórico
+US$5.142 MM). Tras filtrar falsos positivos (cerros, parques, fajas de
+camino/FFCC y lotes >10 ha, casi seguro no vendibles), la versión limpia
+`predios_fiscales_vendibles_limpio.csv` queda en:
+
+| | Predios | Valor estimado |
+|---|--:|--:|
+| Tier 1 (disponible/recuperable) | 469 | US$ 1.336 MM |
+| Tier 2 (posible) | 327 | US$ 709 MM |
+| **Total limpio** | **796** | **US$ 2.045 MM** |
+
+Por región (limpio): Metropolitana US$1.413 MM · Valparaíso US$493 MM ·
+Biobío US$138 MM. Sigue siendo un techo bruto de suelo; lo recaudable real es
+menor y el plan toma solo un subconjunto (~350 propiedades).
+
 ## 7. Tarapacá (capa propia)
 
 315 predios; 47% afectación/destinación (en uso, sobre todo fajas viales MOP),
