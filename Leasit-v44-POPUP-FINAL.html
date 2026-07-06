@@ -361,6 +361,209 @@ function analizarPortafolio(expedientes){
   return txt;
 }
 
+// ── MOTOR ECL — PROVISIONES POR PÉRDIDA ESPERADA (IFRS 9 / CMF) ─────────────
+const TIPOS_ACTIVO=['Inmobiliario','Transporte','Maquinaria','Tecnología','Otros'];
+const ECL_DEFAULTS={
+  // PD 12 meses (%) por clasificación Leasit — calibración inicial, editable
+  pd12:{'A+':0.5,'A':1.2,'B+':2.8,'B':6.0,'C':14.0,'D':30.0},
+  // Castigo (%) sobre el valor de la garantía al liquidar, por tipo de activo
+  haircut:{Inmobiliario:25,Transporte:40,Maquinaria:50,'Tecnología':75,Otros:60},
+  lgdSinGarantia:75,lgdFloor:5,lgdCap:90,           // % — LGD sin colateral, piso y techo
+  moraStage2:30,moraStage3:90,                      // días — presunciones IFRS 9 (SICR >30d / default ≥90d)
+  pdLifetimeCapAnios:5,                             // horizonte máximo para PD lifetime
+  betaIPC:6,betaTPM:4,                              // sensibilidad forward-looking (pp de factor por punto sobre neutral)
+  ipcNeutral:3.0,tpmNeutral:4.5,                    // % — centro de meta BCCh / TPM neutral
+};
+const ECL_ESCENARIOS=[
+  {id:'base',nombre:'Base',peso:60,ipc:3.5,tpm:5.0},
+  {id:'pesimista',nombre:'Pesimista',peso:25,ipc:6.0,tpm:8.0},
+  {id:'optimista',nombre:'Optimista',peso:15,ipc:2.5,tpm:4.0},
+];
+const STAGE_META={
+  1:{label:'Stage 1 — Riesgo normal',desc:'ECL 12 meses',cls:'badge-green',color:'#1E8449'},
+  2:{label:'Stage 2 — Riesgo aumentado',desc:'ECL lifetime',cls:'badge-amber',color:'#D68910'},
+  3:{label:'Stage 3 — Deterioro / default',desc:'PD 100%',cls:'badge-red',color:'#922B21'},
+};
+
+function macroFactor(escenarios,p){
+  const pesoTotal=escenarios.reduce((s,e)=>s+(+e.peso||0),0)||1;
+  const f=escenarios.reduce((s,e)=>s+(1+(p.betaIPC/100)*((+e.ipc||0)-p.ipcNeutral)+(p.betaTPM/100)*((+e.tpm||0)-p.tpmNeutral))*((+e.peso||0)/pesoTotal),0);
+  return Math.min(1.6,Math.max(0.7,f));
+}
+function eclStage(c,p){
+  if(c.mora>=p.moraStage3)return 3;
+  if(c.mora>p.moraStage2||c.grade==='C'||c.grade==='D')return 2; // SICR: mora >30d o clasificación deteriorada
+  return 1;
+}
+function eclContrato(c,p,factor){
+  const stage=eclStage(c,p);
+  const pd12=Math.min(100,(p.pd12[c.grade]!==undefined?p.pd12[c.grade]:p.pd12['B'])*factor);
+  const anios=Math.max(1,Math.min(p.pdLifetimeCapAnios,(c.plazoResidual||12)/12));
+  const pdLt=Math.min(100,(1-Math.pow(1-pd12/100,anios))*100);
+  const pd=stage===3?100:stage===2?pdLt:pd12;
+  const hc=(p.haircut[c.tipoActivo]!==undefined?p.haircut[c.tipoActivo]:p.haircut.Otros)/100;
+  const recup=c.saldo>0?Math.min(1,(c.garantia||0)*(1-hc)/c.saldo):0;
+  const lgd=(c.garantia||0)>0?Math.min(p.lgdCap,Math.max(p.lgdFloor,(1-recup)*100)):p.lgdSinGarantia;
+  const ecl=c.saldo*(pd/100)*(lgd/100);
+  return{...c,stage,pd,lgd,ecl,brecha:ecl-(c.provisionActual||0)};
+}
+function eclPortafolio(cartera,p,escenarios){
+  const factor=macroFactor(escenarios,p);
+  const rows=cartera.map(c=>eclContrato(c,p,factor));
+  const sum=(rs,k)=>rs.reduce((s,r)=>s+(r[k]||0),0);
+  const ead=sum(rows,'saldo'),ecl=sum(rows,'ecl'),provActual=sum(rows,'provisionActual');
+  const porStage=[1,2,3].map(st=>{const rs=rows.filter(r=>r.stage===st);return{stage:st,n:rs.length,ead:sum(rs,'saldo'),ecl:sum(rs,'ecl')};});
+  const porTipo=TIPOS_ACTIVO.map(t=>{const rs=rows.filter(r=>r.tipoActivo===t);return{tipo:t,n:rs.length,ead:sum(rs,'saldo'),ecl:sum(rs,'ecl')};}).filter(d=>d.n>0);
+  return{rows,factor,ead,ecl,provActual,brecha:ecl-provActual,cobertura:ead>0?ecl/ead*100:0,porStage,porTipo};
+}
+
+// Cartera demo — contratos vigentes (montos en UF)
+const DEMO_CARTERA=[
+  {contrato:'CL-2024-0112',cliente:'Transportes del Pacífico S.A.',rut:'76.543.210-8',tipoActivo:'Transporte',saldo:9800,garantia:11500,mora:0,plazoResidual:31,grade:'A+',provisionActual:35},
+  {contrato:'CL-2023-0087',cliente:'Inmobiliaria Los Robles SpA',rut:'76.222.333-4',tipoActivo:'Inmobiliario',saldo:28500,garantia:41000,mora:0,plazoResidual:96,grade:'A',provisionActual:120},
+  {contrato:'CL-2024-0140',cliente:'Constructora Andina del Sur S.A.',rut:'77.890.123-5',tipoActivo:'Maquinaria',saldo:6200,garantia:5100,mora:45,plazoResidual:38,grade:'B',provisionActual:150},
+  {contrato:'CL-2022-0031',cliente:'Bodegas Central Sur Ltda.',rut:'78.555.666-7',tipoActivo:'Inmobiliario',saldo:19400,garantia:26800,mora:0,plazoResidual:72,grade:'B+',provisionActual:210},
+  {contrato:'CL-2024-0155',cliente:'Viña Santa Elisa S.A.',rut:'79.456.789-2',tipoActivo:'Maquinaria',saldo:2800,garantia:2400,mora:0,plazoResidual:29,grade:'B+',provisionActual:45},
+  {contrato:'CL-2023-0098',cliente:'Retail Express Ltda.',rut:'78.123.456-9',tipoActivo:'Tecnología',saldo:1350,garantia:0,mora:120,plazoResidual:18,grade:'D',provisionActual:420},
+  {contrato:'CL-2024-0161',cliente:'Agrícola La Serena Ltda.',rut:'79.234.567-3',tipoActivo:'Maquinaria',saldo:780,garantia:690,mora:15,plazoResidual:42,grade:'B+',provisionActual:12},
+  {contrato:'CL-2023-0104',cliente:'Logística Austral SpA',rut:'76.888.999-0',tipoActivo:'Transporte',saldo:5400,garantia:5900,mora:60,plazoResidual:24,grade:'B',provisionActual:95},
+  {contrato:'CL-2022-0056',cliente:'Clínica Dental Integra Ltda.',rut:'77.111.222-8',tipoActivo:'Otros',saldo:940,garantia:520,mora:0,plazoResidual:20,grade:'A',provisionActual:10},
+  {contrato:'CL-2023-0119',cliente:'Metalúrgica Norte Grande S.A.',rut:'76.444.555-1',tipoActivo:'Maquinaria',saldo:4100,garantia:3300,mora:95,plazoResidual:30,grade:'C',provisionActual:680},
+  {contrato:'CL-2024-0172',cliente:'Oficinas Vitacura Norte SpA',rut:'77.666.777-9',tipoActivo:'Inmobiliario',saldo:15800,garantia:21500,mora:35,plazoResidual:108,grade:'B',provisionActual:180},
+  {contrato:'CL-2024-0180',cliente:'Distribuidora Frío Sur Ltda.',rut:'78.999.000-1',tipoActivo:'Transporte',saldo:3200,garantia:3600,mora:0,plazoResidual:44,grade:'A',provisionActual:18},
+  {contrato:'CL-2023-0125',cliente:'Imprenta Digital Andes Ltda.',rut:'79.777.888-2',tipoActivo:'Tecnología',saldo:620,garantia:310,mora:75,plazoResidual:12,grade:'C',provisionActual:70},
+  {contrato:'CL-2022-0044',cliente:'Panificadora San José S.A.',rut:'76.333.111-6',tipoActivo:'Otros',saldo:1150,garantia:800,mora:0,plazoResidual:16,grade:'B+',provisionActual:20},
+];
+
+// Importación de cartera desde Excel/CSV (detección flexible de encabezados)
+function parseCarteraXLSX(data){
+  const wb=XLSX.read(data,{type:'array',cellText:false});
+  const ws=wb.Sheets[wb.SheetNames.find(n=>n.toLowerCase().includes('cartera'))||wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+  if(!rows.length)return[];
+  const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  const hdr=(rows[0]||[]).map(norm);
+  const col=(...keys)=>hdr.findIndex(hh=>keys.some(k=>hh.includes(k)));
+  const ci={contrato:col('contrato','operacion','id'),cliente:col('cliente','razon'),rut:col('rut'),
+    tipo:col('tipo'),saldo:col('saldo','insoluto','ead'),garantia:col('garant','tasacion'),
+    mora:col('mora','atraso'),plazo:col('plazo','residual'),grade:col('clasif','nota','grade'),prov:col('provision')};
+  const tipoOf=v=>{const t=norm(v);
+    if(t.includes('inmob')||t.includes('raiz')||t.includes('bodega')||t.includes('oficina'))return'Inmobiliario';
+    if(t.includes('transp')||t.includes('camion')||t.includes('vehic')||t.includes('bus')||t.includes('flota'))return'Transporte';
+    if(t.includes('maq')||t.includes('equip'))return'Maquinaria';
+    if(t.includes('tec')||t.includes('comput')||t.includes('servidor')||t.includes('erp'))return'Tecnología';
+    return'Otros';};
+  const gradeOf=v=>{const g=String(v||'').toUpperCase().trim();return['A+','A','B+','B','C','D'].includes(g)?g:'B';};
+  const get=(row,i)=>i>=0?row[i]:null;
+  return rows.slice(1).filter(r=>r&&r.some(x=>x!=null&&x!=='')).map((r,i)=>({
+    contrato:String(get(r,ci.contrato)||`IMP-${String(i+1).padStart(3,'0')}`),
+    cliente:String(get(r,ci.cliente)||'—'),rut:String(get(r,ci.rut)||''),
+    tipoActivo:tipoOf(get(r,ci.tipo)),
+    saldo:parseFloat(get(r,ci.saldo))||0,garantia:parseFloat(get(r,ci.garantia))||0,
+    mora:parseInt(get(r,ci.mora))||0,plazoResidual:parseInt(get(r,ci.plazo))||24,
+    grade:gradeOf(get(r,ci.grade)),provisionActual:parseFloat(get(r,ci.prov))||0,
+  })).filter(c=>c.saldo>0);
+}
+
+function exportPlantillaCartera(){
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([
+    ['contrato','cliente','rut','tipo_activo','saldo_uf','garantia_uf','mora_dias','plazo_residual_meses','clasificacion','provision_actual_uf'],
+    ['CL-2026-001','Ejemplo Transportes S.A.','76.111.222-3','Transporte',8500,9200,0,36,'A',40],
+    ['CL-2026-002','Ejemplo Constructora Ltda.','77.333.444-5','Inmobiliario',24000,31000,45,84,'B+',180],
+  ]);
+  XLSX.utils.book_append_sheet(wb,ws,'Cartera');
+  XLSX.writeFile(wb,'Plantilla_Cartera_ECL.xlsx');
+}
+
+function exportECLXLSX(res,params,escenarios){
+  const wb=XLSX.utils.book_new();
+  const rnd=(n,d)=>+(+n).toFixed(d);
+  const det=[['Contrato','Cliente','RUT','Tipo activo','Clasificación','Saldo (UF)','Garantía (UF)','Mora (días)','Plazo residual (m)','Stage','PD (%)','LGD (%)','ECL (UF)','Provisión actual (UF)','Brecha (UF)'],
+    ...res.rows.map(r=>[r.contrato,r.cliente,r.rut,r.tipoActivo,r.grade,r.saldo,r.garantia||0,r.mora,r.plazoResidual,r.stage,rnd(r.pd,2),rnd(r.lgd,1),rnd(r.ecl,1),r.provisionActual||0,rnd(r.brecha,1)])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(det),'Detalle ECL');
+  const resumen=[['RESUMEN PROVISIONES ECL'],[],
+    ['Exposición total (EAD)',rnd(res.ead,0)],['Provisión ECL modelo',rnd(res.ecl,1)],['Provisión contable actual',rnd(res.provActual,1)],['Brecha (modelo - actual)',rnd(res.brecha,1)],['Cobertura (%)',rnd(res.cobertura,2)],['Factor macro',rnd(res.factor,3)],[],
+    ['Por stage','Contratos','EAD (UF)','ECL (UF)'],
+    ...res.porStage.map(s=>[STAGE_META[s.stage].label,s.n,rnd(s.ead,0),rnd(s.ecl,1)]),[],
+    ['Por tipo de activo','Contratos','EAD (UF)','ECL (UF)'],
+    ...res.porTipo.map(t=>[t.tipo,t.n,rnd(t.ead,0),rnd(t.ecl,1)])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(resumen),'Resumen');
+  const par=[['PARÁMETROS DEL MODELO'],[],['PD 12 meses (%) por clasificación'],
+    ...Object.entries(params.pd12),[],['Haircut de garantía (%) por tipo de activo'],
+    ...Object.entries(params.haircut),[],
+    ['LGD sin garantía (%)',params.lgdSinGarantia],['LGD piso (%)',params.lgdFloor],['LGD techo (%)',params.lgdCap],
+    ['Mora Stage 2 (> días)',params.moraStage2],['Mora Stage 3 (≥ días)',params.moraStage3],['Horizonte lifetime máx. (años)',params.pdLifetimeCapAnios],
+    ['Beta IPC',params.betaIPC],['Beta TPM',params.betaTPM],['IPC neutral (%)',params.ipcNeutral],['TPM neutral (%)',params.tpmNeutral],[],
+    ['Escenario','Peso (%)','IPC (%)','TPM (%)'],...escenarios.map(e=>[e.nombre,e.peso,e.ipc,e.tpm])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(par),'Parametros');
+  XLSX.writeFile(wb,`Provisiones_ECL_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function exportECLPDF(res,params,escenarios){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210;
+  const NAVY=[26,58,92],BLUE=[46,109,164],LGRAY=[242,243,244],WHITE=[255,255,255],GREEN=[30,132,73],RED=[146,43,33];
+  const ufS=n=>'UF '+Math.round(n).toLocaleString('es-CL');
+  doc.setFillColor(...NAVY);doc.rect(0,0,W,24,'F');
+  doc.setFillColor(...BLUE);doc.rect(0,22,W,3,'F');
+  doc.setTextColor(...WHITE);doc.setFontSize(14);doc.setFont('helvetica','bold');
+  doc.text('INFORME DE PROVISIONES — PÉRDIDA ESPERADA (ECL)',15,11);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');
+  doc.text(`Cartera de leasing · ${res.rows.length} contratos · Generado: ${new Date().toLocaleDateString('es-CL')}`,15,17);
+  let y=32;
+  doc.setFillColor(...LGRAY);doc.roundedRect(10,y,W-20,30,2,2,'F');
+  doc.setTextColor(...NAVY);doc.setFontSize(10);doc.setFont('helvetica','bold');
+  doc.text('RESUMEN EJECUTIVO',15,y+8);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(74,74,74);
+  doc.text(`Exposición (EAD): ${ufS(res.ead)}   ·   Provisión ECL modelo: ${ufS(res.ecl)}   ·   Cobertura: ${res.cobertura.toFixed(2)}%   ·   Factor macro: ${res.factor.toFixed(3)}`,15,y+16);
+  const sub=res.brecha>0;
+  doc.setFont('helvetica','bold');doc.setTextColor(...(sub?RED:GREEN));
+  doc.text(sub?`SUBPROVISIÓN: faltan ${ufS(res.brecha)} respecto de la provisión contable actual (${ufS(res.provActual)})`
+              :`Sobreprovisión: ${ufS(-res.brecha)} por sobre la provisión contable actual (${ufS(res.provActual)})`,15,y+24);
+  y+=36;
+  const tblOpts={margin:{left:10,right:10},headStyles:{fillColor:BLUE,textColor:WHITE,fontSize:7,fontStyle:'bold'},bodyStyles:{fontSize:7,textColor:[74,74,74]},alternateRowStyles:{fillColor:LGRAY},tableLineColor:[189,195,199],tableLineWidth:0.1};
+  const section=t=>{doc.setFillColor(...NAVY);doc.rect(10,y,W-20,7,'F');doc.setTextColor(...WHITE);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('  '+t,10,y+5);y+=9;};
+  section('PROVISIONES POR STAGE (IFRS 9)');
+  doc.autoTable({startY:y,...tblOpts,
+    head:[['Stage','Contratos','EAD (UF)','ECL (UF)','Cobertura']],
+    body:res.porStage.map(s=>[STAGE_META[s.stage].label+' · '+STAGE_META[s.stage].desc,s.n,Math.round(s.ead).toLocaleString('es-CL'),Math.round(s.ecl).toLocaleString('es-CL'),s.ead>0?(s.ecl/s.ead*100).toFixed(2)+'%':'—'])});
+  y=doc.lastAutoTable.finalY+6;
+  section('PROVISIONES POR TIPO DE ACTIVO');
+  doc.autoTable({startY:y,...tblOpts,
+    head:[['Tipo de activo','Contratos','EAD (UF)','ECL (UF)','Cobertura']],
+    body:res.porTipo.map(t=>[t.tipo,t.n,Math.round(t.ead).toLocaleString('es-CL'),Math.round(t.ecl).toLocaleString('es-CL'),t.ead>0?(t.ecl/t.ead*100).toFixed(2)+'%':'—'])});
+  y=doc.lastAutoTable.finalY+6;
+  section('ESCENARIOS MACROECONÓMICOS (FORWARD-LOOKING)');
+  doc.autoTable({startY:y,...tblOpts,
+    head:[['Escenario','Peso','IPC','TPM']],
+    body:[...escenarios.map(e=>[e.nombre,e.peso+'%',e.ipc+'%',e.tpm+'%']),
+      [{content:'Factor macro ponderado aplicado a la PD',styles:{fontStyle:'bold'}},'','',{content:res.factor.toFixed(3),styles:{fontStyle:'bold'}}]]});
+  y=doc.lastAutoTable.finalY+6;
+  if(y>230){doc.addPage();y=15;}
+  section('DETALLE — MAYORES PROVISIONES POR CONTRATO');
+  const top=[...res.rows].sort((a,b)=>b.ecl-a.ecl).slice(0,15);
+  doc.autoTable({startY:y,...tblOpts,
+    head:[['Contrato','Cliente','Tipo','Clasif.','Saldo (UF)','Mora','Stage','PD','LGD','ECL (UF)','Brecha (UF)']],
+    body:top.map(r=>[r.contrato,r.cliente.slice(0,26),r.tipoActivo,r.grade,Math.round(r.saldo).toLocaleString('es-CL'),r.mora+'d','S'+r.stage,r.pd.toFixed(1)+'%',r.lgd.toFixed(0)+'%',Math.round(r.ecl).toLocaleString('es-CL'),Math.round(r.brecha).toLocaleString('es-CL')])});
+  y=doc.lastAutoTable.finalY+8;
+  if(y>250){doc.addPage();y=15;}
+  doc.setTextColor(74,74,74);doc.setFontSize(7);doc.setFont('helvetica','normal');
+  const met=doc.splitTextToSize('Metodología: ECL = PD × LGD × EAD por contrato. Staging IFRS 9: Stage 1 (mora ≤'+params.moraStage2+'d) usa PD a 12 meses; Stage 2 (mora >'+params.moraStage2+'d o clasificación C/D, presunción de aumento significativo del riesgo) usa PD lifetime = 1-(1-PD12)^años residuales (tope '+params.pdLifetimeCapAnios+' años); Stage 3 (mora ≥'+params.moraStage3+'d) usa PD 100%. LGD = 1 - recuperación por garantía neta de castigo por tipo de activo, con piso '+params.lgdFloor+'% y techo '+params.lgdCap+'%; sin garantía se aplica '+params.lgdSinGarantia+'%. La PD incorpora un factor forward-looking ponderado por escenarios macro (IPC y TPM vs. niveles neutrales), en línea con los drivers macroeconómicos documentados para carteras de leasing chilenas. Modelo referencial de apoyo a la gestión: no sustituye la validación interna ni los requerimientos específicos de la CMF (Compendio de Normas Contables, Cap. B-1) o de auditoría externa aplicables a cada entidad.',W-30);
+  doc.text(met,15,y);
+  const pages=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i);
+    doc.setFillColor(...LGRAY);doc.rect(0,285,W,12,'F');
+    doc.setFillColor(...NAVY);doc.rect(0,284,W,1,'F');
+    doc.setTextColor(74,74,74);doc.setFontSize(7);doc.setFont('helvetica','normal');
+    doc.text('Leasit — Provisiones por Pérdida Esperada (ECL) · Uso confidencial interno',15,291);
+    doc.text(`Página ${i}/${pages} · ${new Date().toLocaleString('es-CL')}`,W-60,291);
+  }
+  doc.save(`Informe_Provisiones_ECL_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
 // ── APP ────────────────────────────────────────────────────────────────────
 function App(){
   const[user,setUser]=useState(null);
@@ -380,14 +583,16 @@ function App(){
   const updateExp=(id,patch)=>setExpedientes(prev=>prev.map(e=>e.id===id?{...e,...patch}:e));
 
   if(!user)return h(Login,{onLogin:setUser,apiKey,onSaveApiKey:saveApiKey});
-  if(page==='detail')return h(Layout,{user,page,setPage,onLogout:()=>setUser(null)},
+  if(page==='detail')return h(Layout,{user,page,setPage,expedientes,onLogout:()=>setUser(null)},
     h(DetalleExpediente,{exp:expedientes.find(e=>e.id===detailId),
       onBack:()=>setPage('expedientes'),onUpdate:updateExp,onExportPDF:exportPDF}));
-  if(page==='nueva')return h(Layout,{user,page,setPage,onLogout:()=>setUser(null)},
+  if(page==='nueva')return h(Layout,{user,page,setPage,expedientes,onLogout:()=>setUser(null)},
     h(NuevaEval,{user,apiKey,onSave:(exp)=>{const id=addExp(exp);setDetailId(id);setPage('detail');}}));
-  if(page==='expedientes')return h(Layout,{user,page,setPage,onLogout:()=>setUser(null)},
+  if(page==='expedientes')return h(Layout,{user,page,setPage,expedientes,onLogout:()=>setUser(null)},
     h(Expedientes,{expedientes,onSelect:(id)=>{setDetailId(id);setPage('detail');}}));
-  return h(Layout,{user,page,setPage,onLogout:()=>setUser(null)},
+  if(page==='ecl')return h(Layout,{user,page,setPage,expedientes,onLogout:()=>setUser(null)},
+    h(ProvisionesECL,null));
+  return h(Layout,{user,page,setPage,expedientes,onLogout:()=>setUser(null)},
     h(Dashboard,{expedientes,onSelect:(id)=>{setDetailId(id);setPage('detail');},onNueva:()=>setPage('nueva')}));
 }
 
@@ -438,8 +643,8 @@ function Login({onLogin,apiKey,onSaveApiKey}){
 }
 
 // ── LAYOUT ────────────────────────────────────────────────────────────────
-function Layout({user,page,setPage,onLogout,children}){
-  const titles={dashboard:'Dashboard',expedientes:'Expedientes',nueva:'Nueva evaluación',detail:'Detalle expediente'};
+function Layout({user,page,setPage,expedientes,onLogout,children}){
+  const titles={dashboard:'Dashboard',expedientes:'Expedientes',nueva:'Nueva evaluación',detail:'Detalle expediente',ecl:'Provisiones ECL'};
   return h('div',{style:{display:'flex'}},
     h('aside',{className:'sidebar'},
       h('div',{className:'sidebar-logo'},h('img',{src:'data:image/png;base64,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',alt:'Leasit',style:{width:148,display:'block',marginBottom:4}}),h('div',{className:'logo-sub',style:{color:'rgba(255,255,255,.5)',fontSize:10}},'Evaluación de crédito leasing')),
@@ -450,6 +655,8 @@ function Layout({user,page,setPage,onLogout,children}){
           h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('path',{d:'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z'}),h('polyline',{points:'14 2 14 8 20 8'}),h('line',{x1:16,y1:13,x2:8,y2:13}),h('line',{x1:16,y1:17,x2:8,y2:17})),'Expedientes'),
         h('button',{className:`nav-item${page==='nueva'?' active':''}`,onClick:()=>setPage('nueva')},
           h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('line',{x1:12,y1:5,x2:12,y2:19}),h('line',{x1:5,y1:12,x2:19,y2:12})),'Nueva evaluación'),
+        h('button',{className:`nav-item${page==='ecl'?' active':''}`,onClick:()=>setPage('ecl')},
+          h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('path',{d:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'})),'Provisiones ECL'),
         h('button',{className:'nav-item',onClick:()=>{const txt=analizarPortafolio(expedientes);window.alert(txt);}},
           h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('circle',{cx:12,cy:12,r:10}),h('path',{d:'M12 6v6l4 2'})),'🤖 Análisis')),
       h('div',{className:'sidebar-user'},
@@ -955,6 +1162,179 @@ function DetalleExpediente({exp,onBack,onUpdate,onExportPDF}){
       h('div',{className:'grid-2'},
         h('div',null,h('div',{style:{fontSize:12,fontWeight:500,marginBottom:8}},'Estado de resultados'),[['Ventas netas',fin.ventas],['EBITDA',fin.ebitda],['EBIT',fin.ebitda-fin.dep],['Gastos financieros',fin.gfin],['Utilidad neta',fin.util]].map(([l,v])=>h('div',{key:l,style:{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:'1px solid var(--gray-bd)',fontSize:13}},h('span',{style:{color:'var(--gray-md)'}},l),h('span',{style:{fontFamily:'var(--font-mono)',fontWeight:500}},uf(v))))),
         h('div',null,h('div',{style:{fontSize:12,fontWeight:500,marginBottom:8}},'Balance'),[['Activo corriente',fin.ac],['Pasivo corriente',fin.pc],['Deuda financiera total',dfTotal],['Pasivo total',fin.ptotal],['Patrimonio neto',fin.patr]].map(([l,v])=>h('div',{key:l,style:{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:'1px solid var(--gray-bd)',fontSize:13}},h('span',{style:{color:'var(--gray-md)'}},l),h('span',{style:{fontFamily:'var(--font-mono)',fontWeight:500}},uf(v))))))));
+}
+
+// ── PROVISIONES ECL (UI) ────────────────────────────────────────────────────
+function ProvisionesECL(){
+  const load=(k,fb)=>{try{const s=localStorage.getItem(k);return s?JSON.parse(s):fb;}catch(e){return fb;}};
+  const[cartera,setCartera]=useState(()=>load('le_ecl_cartera',DEMO_CARTERA));
+  const[params,setParams]=useState(()=>{const s=load('le_ecl_params',null);return s?{...ECL_DEFAULTS,...s,pd12:{...ECL_DEFAULTS.pd12,...(s.pd12||{})},haircut:{...ECL_DEFAULTS.haircut,...(s.haircut||{})}}:ECL_DEFAULTS;});
+  const[escenarios,setEscenarios]=useState(()=>load('le_ecl_esc',ECL_ESCENARIOS));
+  const[showParams,setShowParams]=useState(false);
+  const[msg,setMsg]=useState('');
+  const fileRef=useRef(null);
+  useEffect(()=>{localStorage.setItem('le_ecl_cartera',JSON.stringify(cartera));},[cartera]);
+  useEffect(()=>{localStorage.setItem('le_ecl_params',JSON.stringify(params));},[params]);
+  useEffect(()=>{localStorage.setItem('le_ecl_esc',JSON.stringify(escenarios));},[escenarios]);
+
+  const res=eclPortafolio(cartera,params,escenarios);
+  const setP=(k,v)=>setParams(prev=>({...prev,[k]:v}));
+  const setPd=(g,v)=>setParams(prev=>({...prev,pd12:{...prev.pd12,[g]:v}}));
+  const setHc=(t,v)=>setParams(prev=>({...prev,haircut:{...prev.haircut,[t]:v}}));
+  const setEsc=(i,k,v)=>setEscenarios(prev=>prev.map((e,j)=>j===i?{...e,[k]:v}:e));
+  const delContrato=id=>setCartera(prev=>prev.filter(c=>c.contrato!==id));
+
+  const handleImport=ev=>{
+    const file=ev.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        const rows=parseCarteraXLSX(e.target.result);
+        if(!rows.length){alert('No se encontraron contratos válidos.\nDescarga la plantilla para ver el formato esperado (columnas: contrato, cliente, rut, tipo_activo, saldo_uf, garantia_uf, mora_dias, plazo_residual_meses, clasificacion, provision_actual_uf).');return;}
+        setCartera(rows);setMsg(`✓ ${rows.length} contratos importados desde ${file.name}`);
+      }catch(err){alert('Error al leer el archivo: '+err.message);}
+    };
+    reader.readAsArrayBuffer(file);
+    ev.target.value='';
+  };
+
+  const numIn=(val,onCh,step)=>h('input',{className:'form-control',type:'number',step:step||'0.1',value:val,
+    onChange:e=>onCh(parseFloat(e.target.value)||0),
+    style:{width:74,padding:'4px 8px',fontSize:12,fontFamily:'var(--font-mono)'}});
+  const pesoTotal=escenarios.reduce((s,e)=>s+(+e.peso||0),0);
+  const sub=res.brecha>0.5,sobre=res.brecha<-0.5;
+  const maxStageEcl=Math.max(...res.porStage.map(s=>s.ecl),1);
+  const maxTipoEcl=Math.max(...res.porTipo.map(t=>t.ecl),1);
+  const sorted=[...res.rows].sort((a,b)=>b.ecl-a.ecl);
+
+  return h(Fragment,null,
+    h('div',{style:{marginBottom:20}},
+      h('h2',{style:{fontSize:18,fontWeight:500}},'Provisiones ECL'),
+      h('p',{className:'text-muted text-sm'},'Pérdida esperada de la cartera de leasing — modelo PD × LGD × EAD con staging IFRS 9 y ajuste macro forward-looking')),
+
+    h('div',{className:'card mb-4',style:{padding:'14px 16px'}},
+      h('div',{style:{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}},
+        h('input',{ref:fileRef,type:'file',accept:'.xlsx,.xls,.csv',style:{display:'none'},onChange:handleImport}),
+        h('button',{className:'btn btn-primary btn-sm',onClick:()=>fileRef.current&&fileRef.current.click()},'⬆ Importar cartera'),
+        h('button',{className:'btn btn-secondary btn-sm',onClick:exportPlantillaCartera},'Plantilla Excel'),
+        h('button',{className:'btn btn-secondary btn-sm',onClick:()=>{setCartera(DEMO_CARTERA);setMsg('Cartera demo restaurada');}},'Cartera demo'),
+        h('span',{style:{flex:1}}),
+        h('button',{className:'btn btn-secondary btn-sm',onClick:()=>exportECLXLSX(res,params,escenarios)},'Exportar Excel'),
+        h('button',{className:'btn btn-primary btn-sm',onClick:()=>exportECLPDF(res,params,escenarios)},'Informe PDF')),
+      msg&&h('div',{style:{marginTop:8,fontSize:12,color:'var(--green)'}},msg)),
+
+    h('div',{className:'grid-4 mb-6'},
+      h('div',{className:'stat-card'},
+        h('div',{className:'stat-label'},'Exposición (EAD)'),
+        h('div',{className:'stat-value'},uf(res.ead)),
+        h('div',{className:'stat-sub'},`${cartera.length} contratos vigentes`)),
+      h('div',{className:'stat-card'},
+        h('div',{className:'stat-label'},'Provisión ECL modelo'),
+        h('div',{className:'stat-value',style:{color:'var(--blue)'}},uf(res.ecl)),
+        h('div',{className:'stat-sub'},`Cobertura ${res.cobertura.toFixed(2)}% · factor macro ${res.factor.toFixed(3)}`)),
+      h('div',{className:'stat-card'},
+        h('div',{className:'stat-label'},'Provisión contable actual'),
+        h('div',{className:'stat-value'},uf(res.provActual)),
+        h('div',{className:'stat-sub'},'Informada en la cartera')),
+      h('div',{className:'stat-card'},
+        h('div',{className:'stat-label'},'Brecha modelo vs. contable'),
+        h('div',{className:'stat-value',style:{color:sub?'var(--red)':sobre?'var(--green)':'var(--gray-dk)'}},(res.brecha>0?'+':res.brecha<0?'−':'')+uf(Math.abs(res.brecha))),
+        h('div',{className:'stat-sub',style:{color:sub?'var(--red)':sobre?'var(--green)':'var(--gray-md)',fontWeight:sub?600:400}},
+          sub?'⚠ Subprovisión — riesgo de observación de auditoría':sobre?'Sobreprovisión — holgura contable':'Provisiones alineadas'))),
+
+    h('div',{className:'card mb-4'},
+      h('div',{className:'flex items-center justify-between mb-4'},
+        h('span',{style:{fontSize:13,fontWeight:500}},'Escenarios macroeconómicos (forward-looking)'),
+        h('span',{className:'text-muted text-sm'},'Factor ponderado aplicado a la PD: ',h('strong',{style:{fontFamily:'var(--font-mono)',color:'var(--navy)'}},res.factor.toFixed(3)))),
+      h('div',{className:'table-wrap'},
+        h('table',{className:'data-table'},
+          h('thead',null,h('tr',null,['Escenario','Peso (%)','IPC proyectado (%)','TPM proyectada (%)'].map(t=>h('th',{key:t},t)))),
+          h('tbody',null,escenarios.map((e,i)=>h('tr',{key:e.id},
+            h('td',{style:{fontWeight:500}},e.nombre),
+            h('td',null,numIn(e.peso,v=>setEsc(i,'peso',v),'1')),
+            h('td',null,numIn(e.ipc,v=>setEsc(i,'ipc',v))),
+            h('td',null,numIn(e.tpm,v=>setEsc(i,'tpm',v)))))))),
+      h('div',{style:{marginTop:8,fontSize:11,color:pesoTotal===100?'var(--gray-md)':'var(--amber)'}},
+        pesoTotal===100?`Neutrales de referencia: IPC ${params.ipcNeutral}% (centro de meta BCCh) · TPM ${params.tpmNeutral}%`
+        :`⚠ Los pesos suman ${pesoTotal}% — se normalizan automáticamente al calcular`)),
+
+    h('div',{className:'card mb-4'},
+      h('div',{className:'flex items-center justify-between'},
+        h('span',{style:{fontSize:13,fontWeight:500}},'Parámetros del modelo'),
+        h('div',{className:'flex gap-2'},
+          showParams&&h('button',{className:'btn btn-secondary btn-sm',onClick:()=>{setParams(ECL_DEFAULTS);setEscenarios(ECL_ESCENARIOS);}},'Restaurar por defecto'),
+          h('button',{className:'btn btn-secondary btn-sm',onClick:()=>setShowParams(!showParams)},showParams?'Ocultar':'Editar parámetros'))),
+      showParams&&h('div',{style:{marginTop:14}},
+        h('div',{style:{fontSize:12,fontWeight:500,marginBottom:8}},'PD 12 meses (%) por clasificación de riesgo'),
+        h('div',{style:{display:'flex',gap:14,flexWrap:'wrap',marginBottom:16}},
+          ['A+','A','B+','B','C','D'].map(g=>h('div',{key:g,style:{textAlign:'center'}},
+            h('div',{style:{fontSize:11,color:'var(--gray-md)',marginBottom:4,fontWeight:600}},g),
+            numIn(params.pd12[g],v=>setPd(g,v))))),
+        h('div',{style:{fontSize:12,fontWeight:500,marginBottom:8}},'Castigo sobre garantía (%) por tipo de activo — determina la LGD'),
+        h('div',{style:{display:'flex',gap:14,flexWrap:'wrap',marginBottom:16}},
+          TIPOS_ACTIVO.map(t=>h('div',{key:t,style:{textAlign:'center'}},
+            h('div',{style:{fontSize:11,color:'var(--gray-md)',marginBottom:4}},t),
+            numIn(params.haircut[t],v=>setHc(t,v),'1')))),
+        h('div',{style:{fontSize:12,fontWeight:500,marginBottom:8}},'Staging, LGD y sensibilidad macro'),
+        h('div',{style:{display:'flex',gap:14,flexWrap:'wrap'}},
+          [['Mora Stage 2 (>d)','moraStage2','1'],['Mora Stage 3 (≥d)','moraStage3','1'],['LGD sin garantía (%)','lgdSinGarantia','1'],['LGD piso (%)','lgdFloor','1'],['LGD techo (%)','lgdCap','1'],['Lifetime máx (años)','pdLifetimeCapAnios','1'],['Beta IPC','betaIPC'],['Beta TPM','betaTPM'],['IPC neutral (%)','ipcNeutral'],['TPM neutral (%)','tpmNeutral']].map(([l,k,st])=>
+            h('div',{key:k,style:{textAlign:'center'}},
+              h('div',{style:{fontSize:11,color:'var(--gray-md)',marginBottom:4,maxWidth:90}},l),
+              numIn(params[k],v=>setP(k,v),st)))))),
+
+    h('div',{className:'grid-2 mb-6'},
+      h('div',{className:'card'},
+        h('div',{style:{fontSize:13,fontWeight:500,marginBottom:14}},'Provisión por stage (IFRS 9)'),
+        h('div',{style:{display:'flex',flexDirection:'column',gap:14}},
+          res.porStage.map(s=>{const m=STAGE_META[s.stage];
+            return h('div',{key:s.stage},
+              h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:4}},
+                h('span',{className:`badge ${m.cls}`},m.label),
+                h('span',{className:'text-muted text-sm'},`${s.n} contratos · ${m.desc}`),
+                h('span',{style:{marginLeft:'auto',fontFamily:'var(--font-mono)',fontSize:12,fontWeight:600}},uf(s.ecl))),
+              h('div',{style:{height:14,background:'var(--gray-lt)',borderRadius:4,overflow:'hidden'},title:`${m.label}: provisión ${uf(s.ecl)} sobre exposición ${uf(s.ead)}`},
+                h('div',{style:{width:`${Math.round(s.ecl/maxStageEcl*100)}%`,height:'100%',background:m.color,borderRadius:4,minWidth:s.ecl>0?4:0}})));}))),
+      h('div',{className:'card'},
+        h('div',{style:{fontSize:13,fontWeight:500,marginBottom:14}},'Provisión por tipo de activo'),
+        h('div',{style:{display:'flex',flexDirection:'column',gap:10}},
+          res.porTipo.map(t=>h('div',{key:t.tipo,style:{display:'flex',alignItems:'center',gap:10}},
+            h('span',{style:{fontSize:11,color:'var(--gray-md)',minWidth:88}},t.tipo),
+            h('div',{style:{flex:1,height:18,background:'var(--gray-lt)',borderRadius:4,overflow:'hidden'},title:`${t.tipo}: ${t.n} contratos · ECL ${uf(t.ecl)} sobre EAD ${uf(t.ead)}`},
+              h('div',{style:{width:`${Math.round(t.ecl/maxTipoEcl*100)}%`,height:'100%',background:'var(--blue)',borderRadius:4,minWidth:t.ecl>0?4:0}})),
+            h('span',{style:{fontSize:11,fontWeight:600,fontFamily:'var(--font-mono)',minWidth:70,textAlign:'right'}},uf(t.ecl))))))),
+
+    h('div',{className:'card mb-4'},
+      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:14}},`Detalle por contrato — ${cartera.length} operaciones (ordenadas por provisión)`),
+      h('div',{className:'table-wrap'},
+        h('table',{className:'data-table'},
+          h('thead',null,h('tr',null,['Contrato','Cliente','Tipo activo','Clasif.','Saldo (UF)','Garantía (UF)','Mora','Stage','PD','LGD','ECL (UF)','Prov. actual','Brecha',''].map((t,i)=>h('th',{key:i},t)))),
+          h('tbody',null,sorted.length===0
+            ?h('tr',null,h('td',{colSpan:14,style:{textAlign:'center',color:'var(--gray-md)',padding:32}},'Sin contratos — importa una cartera o carga la demo'))
+            :sorted.map(r=>{const m=STAGE_META[r.stage];const bs=r.brecha>0.5?'var(--red)':r.brecha<-0.5?'var(--green)':'var(--gray-md)';
+              return h('tr',{key:r.contrato},
+                h('td',null,h('span',{style:{fontFamily:'var(--font-mono)',fontSize:12}},r.contrato)),
+                h('td',{style:{fontWeight:500,maxWidth:170,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},r.cliente),
+                h('td',{className:'text-muted text-sm'},r.tipoActivo),
+                h('td',{style:{fontFamily:'var(--font-mono)',fontSize:12,fontWeight:600}},r.grade),
+                h('td',{style:{fontFamily:'var(--font-mono)',fontSize:12}},Math.round(r.saldo).toLocaleString('es-CL')),
+                h('td',{style:{fontFamily:'var(--font-mono)',fontSize:12}},r.garantia?Math.round(r.garantia).toLocaleString('es-CL'):'—'),
+                h('td',{style:{fontFamily:'var(--font-mono)',fontSize:12,color:r.mora>params.moraStage2?'var(--red)':'inherit'}},r.mora+'d'),
+                h('td',null,h('span',{className:`badge ${m.cls}`,title:m.label+' · '+m.desc},'S'+r.stage)),
+                h('td',{style:{fontFamily:'var(--font-mono)',fontSize:12}},r.pd.toFixed(1)+'%'),
+                h('td',{style:{fontFamily:'var(--font-mono)',fontSize:12}},r.lgd.toFixed(0)+'%'),
+                h('td',{style:{fontFamily:'var(--font-mono)',fontSize:12,fontWeight:700,color:'var(--navy)'}},Math.round(r.ecl).toLocaleString('es-CL')),
+                h('td',{style:{fontFamily:'var(--font-mono)',fontSize:12}},Math.round(r.provisionActual||0).toLocaleString('es-CL')),
+                h('td',{style:{fontFamily:'var(--font-mono)',fontSize:12,fontWeight:600,color:bs}},(r.brecha>0?'+':'')+Math.round(r.brecha).toLocaleString('es-CL')),
+                h('td',null,h('button',{className:'btn btn-secondary btn-sm',style:{padding:'2px 8px'},title:'Quitar contrato',onClick:()=>delContrato(r.contrato)},'✕')));}))))),
+
+    h('div',{className:'card',style:{background:'var(--blue-lt)',border:'none'}},
+      h('div',{style:{fontSize:12,color:'#0C447C',lineHeight:1.8}},
+        h('strong',null,'Metodología. '),
+        'ECL = PD × LGD × EAD por contrato. Staging IFRS 9: ',
+        h('strong',null,'Stage 1'),` (mora ≤${params.moraStage2}d) provisiona la pérdida esperada a 12 meses; `,
+        h('strong',null,'Stage 2'),` (mora >${params.moraStage2}d o clasificación C/D — presunción de aumento significativo del riesgo) provisiona la pérdida esperada lifetime, con PD acumulada sobre el plazo residual (tope ${params.pdLifetimeCapAnios} años); `,
+        h('strong',null,'Stage 3'),` (mora ≥${params.moraStage3}d) asume default con PD 100%. La LGD descuenta la recuperación esperada de la garantía neta de castigo por tipo de activo (piso ${params.lgdFloor}%, techo ${params.lgdCap}%; sin garantía ${params.lgdSinGarantia}%). La PD se ajusta con un factor forward-looking ponderado por escenarios de IPC y TPM, los drivers macroeconómicos documentados para carteras de leasing en Chile. `,
+        h('em',null,'Modelo referencial de apoyo a la gestión: no sustituye la validación interna ni los requerimientos de la CMF (Compendio de Normas Contables, Cap. B-1) ni de la auditoría externa aplicables a cada entidad.'))));
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(h(App));
