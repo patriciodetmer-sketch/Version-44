@@ -810,12 +810,15 @@ const KEY='cartera_gestion_v1';
 let G={}; try{G=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){G={}}
 const gid=d=>'p'+d.id+'|'+d.rol;
 const g=d=>G[gid(d)]||{};
-function save(d,patch){ const k=gid(d); G[k]={...(G[k]||{}),...patch}; localStorage.setItem(KEY,JSON.stringify(G)); }
+function save(d,patch){ const k=gid(d); G[k]={...(G[k]||{}),...patch}; localStorage.setItem(KEY,JSON.stringify(G));
+  if(markers[d.id]) markers[d.id].setStyle({fillColor:mcol(d)}); }
 // ---- estado ----
 let state={q:'',reg:'Todas',tier:'',capa:'',ord:'sc',cmode:'score',est:'',shown:300,active:null};
 // ---- mapa ----
-const map=L.map('map').setView([-30.5,-70.9],4.6);
-let tf=0; const tiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'© OSM © CARTO'});
+const map=L.map('map',{preferCanvas:true}).setView([-30.5,-70.9],4.6);
+const CANVAS=L.canvas({padding:.35});
+let tf=0; map.options.zoomSnap=.5;
+const tiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'© OSM © CARTO'});
 tiles.on('tileerror',()=>{ if(++tf===3) document.getElementById('tilenote').style.display='block'; });
 tiles.addTo(map);
 const layer=L.layerGroup().addTo(map); const markers={};
@@ -874,22 +877,32 @@ function render(){
     b.textContent='Mostrar más ('+(rows.length-state.shown).toLocaleString('es-CL')+' restantes)';
     b.onclick=()=>{state.shown+=400;render();}; el.appendChild(b); }
   // mapa
-  layer.clearLayers();
-  rows.filter(d=>d.lat).slice(0,1700).forEach(d=>{
-    const mk=L.circleMarker([d.lat,d.lon],{radius:d.top?6:4.5,color:'#111',weight:1,fillColor:mcol(d),fillOpacity:.95});
-    mk.bindPopup(quickPop(d),{maxWidth:340});
-    mk.on('click',()=>{state.active=d.id;hl();});
-    markers[d.id]=mk; mk.addTo(layer);
-  });
+  renderMap(rows);
   // leyenda
   const lg=document.getElementById('legend');
   lg.innerHTML= state.cmode==='estado'
     ? '<b>Estado de gestión</b><br>'+ESTADOS.map(([k,n,c])=>'<span class="dot" style="background:'+c+'"></span>'+n).join('<br>')
     : '<b>Score de venta</b><br><span class="dot" style="background:#0B5D4E"></span>95–100<br><span class="dot" style="background:#1C8760"></span>85–94<br><span class="dot" style="background:#3E9E77"></span>70–84<br><span class="dot" style="background:#7FB79A"></span>&lt;70';
 }
+const sharedPop=L.popup({maxWidth:340});
+let mapSig='';
+function renderMap(rows){
+  const pts=rows.filter(d=>d.lat).slice(0,1700);
+  const sig=state.cmode+'|'+pts.length+'|'+(pts.length?pts[0].id+'-'+pts[pts.length-1].id:'')+'|'+state.est+'|'+state.reg+'|'+state.tier+'|'+state.capa+'|'+state.q+'|'+state.ord;
+  if(sig===mapSig) return;
+  mapSig=sig;
+  layer.clearLayers();
+  for(const d of pts){
+    const mk=L.circleMarker([d.lat,d.lon],{renderer:CANVAS,radius:d.top?6:4.5,color:'#111',weight:1,fillColor:mcol(d),fillOpacity:.95});
+    mk.on('click',()=>{ state.active=d.id; hl();
+      sharedPop.setLatLng([d.lat,d.lon]).setContent(quickPop(d)).openOn(map); });
+    markers[d.id]=mk; mk.addTo(layer);
+  }
+}
 function hl(){document.querySelectorAll('.item').forEach(x=>x.classList.toggle('active',+x.dataset.id===state.active));}
 function goTo(d){ state.active=d.id; hl();
-  if(d.lat&&markers[d.id]){ map.flyTo([d.lat,d.lon],Math.max(map.getZoom(),15),{duration:.55}); markers[d.id].openPopup(); } }
+  if(d.lat&&markers[d.id]){ map.flyTo([d.lat,d.lon],Math.max(map.getZoom(),15),{duration:.55});
+    sharedPop.setLatLng([d.lat,d.lon]).setContent(quickPop(d)).openOn(map); } }
 // ---- drawer de gestión ----
 function row(k,v){return v?'<div class="pr"><span class="pk">'+k+':</span> '+v+'</div>':'';}
 window.openDrawer=function(id){
@@ -966,7 +979,8 @@ document.getElementById('expx').onclick=()=>{
   const b=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='gestion_cartera.csv'; a.click(); };
 // ---- controles ----
-document.getElementById('q').addEventListener('input',e=>{state.q=e.target.value;state.shown=300;render();});
+let qT; document.getElementById('q').addEventListener('input',e=>{ clearTimeout(qT);
+  qT=setTimeout(()=>{state.q=e.target.value;state.shown=300;render();},160); });
 const regs=document.getElementById('regs');
 REGS.forEach(r=>{const b=document.createElement('button');b.className='chip';b.textContent=r;b.setAttribute('aria-pressed',r==='Todas');
   b.onclick=()=>{state.reg=r;[...regs.children].forEach(c=>c.setAttribute('aria-pressed',c.textContent===r));state.shown=300;render();};regs.appendChild(b);});
