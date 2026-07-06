@@ -821,6 +821,13 @@ let tf=0; map.options.zoomSnap=.5;
 const tiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'© OSM © CARTO'});
 tiles.on('tileerror',()=>{ if(++tf===3) document.getElementById('tilenote').style.display='block'; });
 tiles.addTo(map);
+const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'© Esri'});
+let satOn=false;
+const SatCtl=L.control({position:'topleft'});
+SatCtl.onAdd=()=>{const d=L.DomUtil.create('div');d.innerHTML='<button id="satbtn" style="background:var(--surface);border:1px solid var(--borderS);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;box-shadow:var(--shadow)">🛰 Satélite</button>';
+ d.firstChild.onclick=e=>{e.stopPropagation();satOn=!satOn; if(satOn){map.removeLayer(tiles);sat.addTo(map);e.target.textContent='🗺 Mapa';} else {map.removeLayer(sat);tiles.addTo(map);e.target.textContent='🛰 Satélite';}};
+ L.DomEvent.disableClickPropagation(d); return d;};
+SatCtl.addTo(map);
 const layer=L.layerGroup().addTo(map); const markers={};
 const mcol=d=> state.cmode==='estado' ? ECOL[(g(d).est||'none')] : scCol(d.sc);
 function quickPop(d){
@@ -917,6 +924,8 @@ window.openDrawer=function(id){
     +'<div class="field"><label>Estado</label><select id="g-est">'+ESTADOS.map(([k,n])=>'<option value="'+k+'"'+(est===k?' selected':'')+'>'+n+'</option>').join('')+'</select></div>'
     +'<div class="field"><label>Prioridad</label><select id="g-pri">'+['','Alta','Media','Baja'].map(p=>'<option'+((gg.pri||'')===p?' selected':'')+'>'+p+'</option>').join('')+'</select></div>'
     +'<div class="field" style="grid-column:1/-1"><label>Mi valorización (UF) — referencia del modelo: UF '+money(d.uf)+'</label><input id="g-val" type="number" min="0" step="1" value="'+(gg.val??'')+'" placeholder="'+d.uf+'"/></div>'
+    +'<div class="field"><label>Valor comercial externo (UF)</label><input id="g-ext" type="number" min="0" step="1" value="'+(gg.ext??'')+'" placeholder="ej. Incity"/></div>'
+    +'<div class="field"><label>Fuente del valor</label><input id="g-src" type="text" value="'+(gg.src??'')+'" placeholder="Incity / Data Inmobiliaria / tasador"/></div>'
   +'</div></div>'
   +'<div class="sec"><h3>Checklist due diligence · '+done+'/'+CHK.length+'</h3><div class="chk">'
     +CHK.map((c,i)=>'<label><input type="checkbox" data-i="'+i+'"'+(chk[i]?' checked':'')+'/>'+c+'</label>').join('')
@@ -928,6 +937,7 @@ window.openDrawer=function(id){
     +'<div class="kv"><span class="k">Superficie</span><span class="v">'+money(d.m2)+' m²</span></div>'
     +'<div class="kv"><span class="k">Valor mercado (modelo)</span><span class="v">UF '+money(d.uf)+' · US$ '+money(Math.round(d.usd/1000))+'K</span></div>'
     +'<div class="kv"><span class="k">Avalúo fiscal (est.)</span><span class="v">UF '+money(Math.round(d.uf/2))+'</span></div>'
+    +((gg.ext)?'<div class="kv"><span class="k">Valor comercial ('+(gg.src||'externo')+')</span><span class="v" style="color:var(--accent);font-weight:700">UF '+money(gg.ext)+'</span></div>':'')
     +'<div class="kv"><span class="k">Tenencia</span><span class="v">'+d.mo+'</span></div>'
     +'<div class="kv"><span class="k">Tier</span><span class="v">'+(d.tier==='1'?'1 · Disponible/recuperable':'2 · Posible')+'</span></div>'
     +(d.pp?'<div class="kv"><span class="k">Potencial</span><span class="v">'+d.pp+'</span></div>':'')
@@ -947,6 +957,8 @@ window.openDrawer=function(id){
   dr.querySelector('#g-est').onchange=e=>{save(d,{est:e.target.value});render();openDrawer(id);};
   dr.querySelector('#g-pri').onchange=e=>{save(d,{pri:e.target.value});};
   dr.querySelector('#g-val').onchange=e=>{save(d,{val:e.target.value?+e.target.value:null});};
+  dr.querySelector('#g-ext').onchange=e=>{save(d,{ext:e.target.value?+e.target.value:null});};
+  dr.querySelector('#g-src').onchange=e=>{save(d,{src:e.target.value||null});};
   dr.querySelectorAll('.chk input').forEach(cb=>cb.onchange=()=>{
     const c={...(g(d).chk||{})}; c[cb.dataset.i]=cb.checked; save(d,{chk:c}); openDrawer(id); render(); });
   dr.querySelector('#g-nadd').onclick=()=>{
@@ -969,11 +981,11 @@ document.getElementById('impfile').onchange=e=>{
   r.readAsText(f); };
 document.getElementById('expx').onclick=()=>{
   const esc=v=>'"'+String(v??'').replace(/"/g,'""').replace(/\r?\n/g,' ')+'"';
-  const head=['ROL','NOMBRE','COMUNA','REGION','M2','UF_MODELO','MI_VALOR_UF','SCORE','ESTADO','PRIORIDAD','CHECKLIST','NOTAS'];
+  const head=['ROL','NOMBRE','COMUNA','REGION','M2','UF_MODELO','MI_VALOR_UF','VALOR_EXTERNO_UF','FUENTE','SCORE','ESTADO','PRIORIDAD','CHECKLIST','NOTAS'];
   const lines=[head.join(';')];
   D.forEach(d=>{ const gg=g(d); if(!G[gid(d)]) return;
     const done=CHK.filter((c,i)=>(gg.chk||{})[i]).length;
-    lines.push([d.rol,d.n,d.com,d.reg,d.m2,d.uf,gg.val??'',d.sc,ENAME[gg.est||'none'],gg.pri||'',done+'/'+CHK.length,
+    lines.push([d.rol,d.n,d.com,d.reg,d.m2,d.uf,gg.val??'',gg.ext??'',gg.src??'',d.sc,ENAME[gg.est||'none'],gg.pri||'',done+'/'+CHK.length,
       (gg.notes||[]).map(n=>'['+n.d+'] '+n.t).join(' | ')].map(esc).join(';')); });
   if(lines.length===1){alert('Aún no hay predios con gestión.');return;}
   const b=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
