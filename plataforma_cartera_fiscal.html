@@ -728,6 +728,22 @@ main{flex:1;display:flex;min-height:0;position:relative}
 .qp .gest{display:inline-block;margin-top:7px;padding:6px 12px;background:var(--accent);color:#fff;border-radius:8px;font-weight:700;cursor:pointer;border:0}
 :root[data-theme="dark"] .qp .gest{color:#06201F}
 /* drawer */
+#gridwrap{flex:1;min-width:0;overflow:auto;display:none;background:var(--surface)}
+body.tableview #list,body.tableview #mapwrap{display:none}
+body.tableview #gridwrap{display:block}
+#grid{border-collapse:separate;border-spacing:0;font-size:12px;width:max-content;min-width:100%}
+#grid th,#grid td{padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap;text-align:left;vertical-align:top}
+#grid thead th{position:sticky;top:0;z-index:2;background:var(--surface2);cursor:pointer;user-select:none;font-weight:600;border-bottom:2px solid var(--borderS)}
+#grid thead th:hover{color:var(--accent)}
+#grid thead th .ar{color:var(--accent);font-size:10px;margin-left:3px}
+#grid tbody tr{cursor:pointer}
+#grid tbody tr:nth-child(even){background:var(--surface2)}
+#grid tbody tr:hover{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+#grid td.num{text-align:right;font-variant-numeric:tabular-nums}
+#grid td.wrap{white-space:normal;max-width:340px;min-width:200px}
+#grid .csc{display:inline-block;min-width:26px;text-align:center;color:#fff;border-radius:6px;padding:1px 5px;font-weight:700}
+#grid .est{border-radius:999px;padding:1px 7px;color:#fff;font-size:11px}
+#gridtop{position:sticky;top:0;z-index:3;background:var(--surface);padding:7px 12px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
 #drawer{position:absolute;top:0;right:0;bottom:0;width:min(430px,100%);background:var(--surface);border-left:1px solid var(--border);box-shadow:var(--shadow);z-index:1000;display:none;flex-direction:column}
 #drawer.open{display:flex}
 .dh{padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
@@ -784,6 +800,7 @@ footer{padding:7px 18px;border-top:1px solid var(--border);background:var(--surf
   <span class="rng" title="Filtrar por superficie"><input id="szMin" type="number" min="0" step="100" placeholder="m² mín"/><span>–</span><input id="szMax" type="number" min="0" step="100" placeholder="m² máx"/></span>
   <span class="rng" title="Filtrar por valor del modelo (UF)"><input id="ufMin" type="number" min="0" step="1000" placeholder="UF mín"/><span>–</span><input id="ufMax" type="number" min="0" step="1000" placeholder="UF máx"/></span>
   <select id="cmode"><option value="score">Color: score</option><option value="estado">Color: estado</option></select>
+  <button id="viewbtn" class="hbtn" title="Cambiar entre mapa y planilla" style="font-size:12px;padding:4px 10px">▤ Planilla</button>
   <button id="clr" class="hbtn" title="Limpiar filtros" style="font-size:12px;padding:4px 8px">✕ Limpiar</button>
   <span id="count" style="margin-left:auto;color:var(--muted);font-size:12px;white-space:nowrap"></span>
 </div>
@@ -793,8 +810,9 @@ footer{padding:7px 18px;border-top:1px solid var(--border);background:var(--surf
     <div id="map"></div>
     <div id="tilenote">Mapa base no disponible en esta vista — puntos y fichas funcionan igual. Abre el archivo HTML local para el mapa completo.</div>
     <div id="legend"></div>
-    <aside id="drawer" aria-label="Gestión del predio"></aside>
   </div>
+  <div id="gridwrap"></div>
+  <aside id="drawer" aria-label="Gestión del predio"></aside>
 </main>
 <footer>Datos: Catastro Bienes Nacionales + PRC MINVU (referenciales). Valores de referencia, no tasaciones. Activa la <b>zonificación del Plan Regulador (PRC)</b> desde el control de capas ▤ arriba a la derecha del mapa (requiere internet; fuente MINVU). La gestión (estados, notas, checklist) se guarda en ESTE navegador — usa “Respaldo (JSON)” para no perderla y “Restaurar” para cargarla en otro equipo.</footer>
 <script>/* @preserve
@@ -835,7 +853,7 @@ const g=d=>G[gid(d)]||{};
 function save(d,patch){ const k=gid(d); G[k]={...(G[k]||{}),...patch}; localStorage.setItem(KEY,JSON.stringify(G));
   if(markers[d.id]) markers[d.id].setStyle({fillColor:mcol(d)}); }
 // ---- estado ----
-let state={q:'',reg:'Todas',tier:'',capa:'',ord:'sc',cmode:'score',est:'',pot:'',szMin:null,szMax:null,ufMin:null,ufMax:null,shown:300,active:null};
+let state={q:'',reg:'Todas',tier:'',capa:'',ord:'sc',cmode:'score',est:'',pot:'',szMin:null,szMax:null,ufMin:null,ufMax:null,shown:300,active:null,view:'map',gkey:'sc',gdir:-1};
 // ---- mapa ----
 const map=L.map('map',{preferCanvas:true}).setView([-30.5,-70.9],4.6);
 const CANVAS=L.canvas({padding:.35});
@@ -883,7 +901,9 @@ function filt(){
       &&(!state.ufMin||d.uf>=state.ufMin)&&(!state.ufMax||d.uf<=state.ufMax)
       &&(!state.pot||(state.pot==='alt'?(d.alt||'').startsWith('Alto'):state.pot==='cm'?(d.cm||'').startsWith('Alto'):state.pot==='ind'?(d.ind||'').startsWith('Alto'):[d.alt,d.cm,d.ind].some(v=>(v||'').startsWith('Alto'))))
       &&(!q||d.com.toLowerCase().includes(q)||d.rol.toLowerCase().includes(q)||d.n.toLowerCase().includes(q)
-        ||(d.pp||'').toLowerCase().includes(q)||(d.voc||'').toLowerCase().includes(q)||(d.z||'').toLowerCase().includes(q));
+        ||(d.pp||'').toLowerCase().includes(q)||(d.voc||'').toLowerCase().includes(q)||(d.z||'').toLowerCase().includes(q)
+        ||(d.zn||'').toLowerCase().includes(q)||(d.up||'').toLowerCase().includes(q)||(d.upr||'').toLowerCase().includes(q)
+        ||(d.mo||'').toLowerCase().includes(q)||(d.inst||'').toLowerCase().includes(q));
   }).sort((a,b)=>{ const o=state.ord;
     if(o==='uf') return b.uf-a.uf; if(o==='ufa') return a.uf-b.uf;
     if(o==='m2') return b.m2-a.m2; if(o==='m2a') return a.m2-b.m2;
@@ -934,6 +954,60 @@ function render(){
   lg.innerHTML= state.cmode==='estado'
     ? '<b>Estado de gestión</b><br>'+ESTADOS.map(([k,n,c])=>'<span class="dot" style="background:'+c+'"></span>'+n).join('<br>')
     : '<b>Score de venta</b><br><span class="dot" style="background:#0B5D4E"></span>95–100<br><span class="dot" style="background:#1C8760"></span>85–94<br><span class="dot" style="background:#3E9E77"></span>70–84<br><span class="dot" style="background:#7FB79A"></span>&lt;70';
+  if(state.view==='table') renderGrid(rows);
+}
+// ---- Vista planilla (Excel) ----
+const GCOLS=[
+  {k:'sc',t:'Score',n:1,r:(d)=>'<span class="csc" style="background:'+mcol(d)+'">'+d.sc+'</span>'},
+  {k:'bd',t:'Prob.'},
+  {k:'est',t:'Estado',g:1,r:(d)=>{const e=g(d).est||'none';return e==='none'?'<span style="color:var(--faint)">—</span>':'<span class="est" style="background:'+ECOL[e]+'">'+ENAME[e]+'</span>';}},
+  {k:'n',t:'Dirección / Nombre',wrap:1},
+  {k:'com',t:'Comuna'},
+  {k:'reg',t:'Región'},
+  {k:'rol',t:'Rol SII'},
+  {k:'tier',t:'Tier',r:(d)=>'Tier '+d.tier},
+  {k:'m2',t:'Superficie m²',n:1,r:(d)=>money(d.m2)},
+  {k:'uf',t:'Valor UF',n:1,r:(d)=>money(d.uf)},
+  {k:'usd',t:'US$',n:1,r:(d)=>'$'+money(Math.round(d.usd/1000))+'K'},
+  {k:'avf',t:'Avalúo est. UF',n:1,v:(d)=>Math.round(d.uf/2),r:(d)=>money(Math.round(d.uf/2))},
+  {k:'siiU',t:'SII UF/m²',n:1,v:(d)=>d.siiU||0,r:(d)=>d.siiU?d.siiU:'—'},
+  {k:'mo',t:'Tenencia'},
+  {k:'z',t:'Zona PRC',r:(d)=>(d.z||'')+(d.zn&&d.zn!==d.z?' · '+d.zn:'')||'—'},
+  {k:'up',t:'Uso permitido',wrap:1,r:(d)=>d.up||'—'},
+  {k:'upr',t:'Uso prohibido',wrap:1,r:(d)=>d.upr||'—'},
+  {k:'inst',t:'Instrumento',r:(d)=>d.inst||'—'},
+  {k:'alt',t:'Pot. altura',r:(d)=>d.alt||'—'},
+  {k:'cm',t:'Pot. comercial',r:(d)=>d.cm||'—'},
+  {k:'ind',t:'Pot. industrial',r:(d)=>d.ind||'—'},
+  {k:'pp',t:'Potencial',wrap:1,r:(d)=>d.pp||d.voc||'—'}
+];
+function gval(d,c){ if(c.v) return c.v(d); if(c.g) return ENAME[g(d).est||'none']||''; return d[c.k]; }
+function renderGrid(rows){
+  const gw=document.getElementById('gridwrap');
+  const col=GCOLS.find(c=>c.k===state.gkey)||GCOLS[0];
+  const dir=state.gdir;
+  const sorted=rows.slice().sort((a,b)=>{
+    let va=gval(a,col), vb=gval(b,col);
+    if(col.n){ va=+va||0; vb=+vb||0; return (va-vb)*dir; }
+    va=(va==null?'':String(va)).toLowerCase(); vb=(vb==null?'':String(vb)).toLowerCase();
+    return va<vb?-dir:va>vb?dir:0;
+  });
+  const CAP=2000; const shown=sorted.slice(0,CAP);
+  let h='<div id="gridtop">'+rows.length.toLocaleString('es-CL')+' predios · clic en un encabezado para ordenar · clic en una fila para gestionar'+(sorted.length>CAP?' · mostrando '+CAP:'')+'</div>';
+  h+='<table id="grid"><thead><tr>';
+  GCOLS.forEach(c=>{ const ar=state.gkey===c.k?'<span class="ar">'+(dir<0?'▼':'▲')+'</span>':''; h+='<th data-k="'+c.k+'">'+c.t+ar+'</th>'; });
+  h+='</tr></thead><tbody>';
+  shown.forEach(d=>{
+    h+='<tr data-id="'+d.id+'">';
+    GCOLS.forEach(c=>{ const cls=(c.n?'num':'')+(c.wrap?' wrap':''); const val=c.r?c.r(d):(d[c.k]==null||d[c.k]===''?'—':d[c.k]); h+='<td class="'+cls+'">'+val+'</td>'; });
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  gw.innerHTML=h;
+  gw.querySelectorAll('#grid thead th').forEach(th=>th.onclick=()=>{ const k=th.dataset.k;
+    if(state.gkey===k) state.gdir=-state.gdir; else { state.gkey=k; state.gdir=(GCOLS.find(c=>c.k===k).n?-1:1); }
+    renderGrid(filt()); });
+  gw.querySelectorAll('#grid tbody tr').forEach(tr=>tr.onclick=()=>openDrawer(+tr.dataset.id));
 }
 const sharedPop=L.popup({maxWidth:340});
 let mapSig='';
@@ -1060,6 +1134,13 @@ document.getElementById('clr').onclick=()=>{
   document.getElementById('ord').value='sc';
   [...regs.children].forEach(c=>c.setAttribute('aria-pressed',c.textContent==='Todas'));
   render(); };
+document.getElementById('viewbtn').onclick=()=>{
+  state.view=state.view==='table'?'map':'table';
+  document.body.classList.toggle('tableview',state.view==='table');
+  document.getElementById('viewbtn').textContent=state.view==='table'?'🗺 Mapa':'▤ Planilla';
+  render();
+  if(state.view==='map'&&map) setTimeout(()=>map.invalidateSize(),50);
+};
 document.getElementById('theme').onclick=()=>{const r=document.documentElement;
   const dark=r.getAttribute('data-theme')==='dark'||(!r.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme:dark)').matches);
   r.setAttribute('data-theme',dark?'light':'dark');};
