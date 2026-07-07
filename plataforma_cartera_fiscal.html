@@ -741,6 +741,7 @@ body.tableview #gridwrap{display:block}
 #grid tbody tr:hover{background:color-mix(in srgb,var(--accent) 12%,transparent)}
 #grid td.num{text-align:right;font-variant-numeric:tabular-nums}
 #grid td.wrap{white-space:normal;max-width:340px;min-width:200px}
+#grid .ell{display:inline-block;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;cursor:help}
 #grid .csc{display:inline-block;min-width:26px;text-align:center;color:#fff;border-radius:6px;padding:1px 5px;font-weight:700}
 #grid .est{border-radius:999px;padding:1px 7px;color:#fff;font-size:11px}
 #gridtop{position:sticky;top:0;z-index:3;background:var(--surface);padding:7px 12px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
@@ -964,7 +965,7 @@ const GCOLS=[
   {k:'n',t:'Dirección / Nombre',wrap:1},
   {k:'com',t:'Comuna'},
   {k:'reg',t:'Región'},
-  {k:'rol',t:'Rol SII'},
+  {k:'rol',t:'Rol SII',r:(d)=>'<span class="ell" title="'+String(d.rol).replace(/"/g,'&quot;')+'">'+d.rol+'</span>'},
   {k:'tier',t:'Tier',r:(d)=>'Tier '+d.tier},
   {k:'m2',t:'Superficie m²',n:1,r:(d)=>money(d.m2)},
   {k:'uf',t:'Valor UF',n:1,r:(d)=>money(d.uf)},
