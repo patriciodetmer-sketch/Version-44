@@ -697,6 +697,9 @@ header{padding:12px 18px 10px;border-bottom:1px solid var(--border);background:v
 .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
 :root[data-theme="dark"] .chip[aria-pressed="true"]{color:#06201F}
 select{font-size:12.5px;padding:5px 9px;border-radius:9px;border:1px solid var(--borderS);background:var(--surface)}
+.rng{display:inline-flex;align-items:center;gap:3px;color:var(--muted);font-size:12px}
+.rng input{width:74px;font-size:12px;padding:5px 7px;border-radius:8px;border:1px solid var(--borderS);background:var(--surface);outline:none}
+.rng input:focus{border-color:var(--accent)}
 main{flex:1;display:flex;min-height:0;position:relative}
 #list{width:400px;min-width:290px;overflow-y:auto;border-right:1px solid var(--border);background:var(--surface2)}
 .item{padding:9px 13px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;gap:9px;align-items:flex-start}
@@ -776,8 +779,11 @@ footer{padding:7px 18px;border-top:1px solid var(--border);background:var(--surf
   <div id="regs" style="display:flex;gap:5px;flex-wrap:wrap"></div>
   <select id="tier"><option value="">Tier: todos</option><option value="1">Tier 1</option><option value="2">Tier 2</option></select>
   <select id="capa"><option value="">Todos</option><option value="top">Top 250 (norma)</option><option value="norte">Norte</option><option value="fav">Con gestión</option></select>
-  <select id="ord"><option value="sc">Orden: score</option><option value="uf">Valor (UF)</option><option value="m2">Superficie</option></select>
+  <select id="ord"><option value="sc">Orden: score</option><option value="uf">Valor (UF) ↓</option><option value="ufa">Valor (UF) ↑</option><option value="m2">Superficie ↓</option><option value="m2a">Superficie ↑</option></select>
+  <span class="rng" title="Filtrar por superficie"><input id="szMin" type="number" min="0" step="100" placeholder="m² mín"/><span>–</span><input id="szMax" type="number" min="0" step="100" placeholder="m² máx"/></span>
+  <span class="rng" title="Filtrar por valor del modelo (UF)"><input id="ufMin" type="number" min="0" step="1000" placeholder="UF mín"/><span>–</span><input id="ufMax" type="number" min="0" step="1000" placeholder="UF máx"/></span>
   <select id="cmode"><option value="score">Color: score</option><option value="estado">Color: estado</option></select>
+  <button id="clr" class="hbtn" title="Limpiar filtros" style="font-size:12px;padding:4px 8px">✕ Limpiar</button>
   <span id="count" style="margin-left:auto;color:var(--muted);font-size:12px;white-space:nowrap"></span>
 </div>
 <main>
@@ -828,7 +834,7 @@ const g=d=>G[gid(d)]||{};
 function save(d,patch){ const k=gid(d); G[k]={...(G[k]||{}),...patch}; localStorage.setItem(KEY,JSON.stringify(G));
   if(markers[d.id]) markers[d.id].setStyle({fillColor:mcol(d)}); }
 // ---- estado ----
-let state={q:'',reg:'Todas',tier:'',capa:'',ord:'sc',cmode:'score',est:'',shown:300,active:null};
+let state={q:'',reg:'Todas',tier:'',capa:'',ord:'sc',cmode:'score',est:'',szMin:null,szMax:null,ufMin:null,ufMax:null,shown:300,active:null};
 // ---- mapa ----
 const map=L.map('map',{preferCanvas:true}).setView([-30.5,-70.9],4.6);
 const CANVAS=L.canvas({padding:.35});
@@ -872,9 +878,14 @@ function filt(){
     return (state.reg==='Todas'||d.reg===state.reg)&&(!state.tier||d.tier===state.tier)
       &&(state.capa!=='top'||d.top)&&(state.capa!=='norte'||d.voc)&&(state.capa!=='fav'||G[gid(d)])
       &&(!state.est||est===state.est)
+      &&(!state.szMin||d.m2>=state.szMin)&&(!state.szMax||d.m2<=state.szMax)
+      &&(!state.ufMin||d.uf>=state.ufMin)&&(!state.ufMax||d.uf<=state.ufMax)
       &&(!q||d.com.toLowerCase().includes(q)||d.rol.toLowerCase().includes(q)||d.n.toLowerCase().includes(q)
         ||(d.pp||'').toLowerCase().includes(q)||(d.voc||'').toLowerCase().includes(q)||(d.z||'').toLowerCase().includes(q));
-  }).sort((a,b)=>b[state.ord]-a[state.ord]);
+  }).sort((a,b)=>{ const o=state.ord;
+    if(o==='uf') return b.uf-a.uf; if(o==='ufa') return a.uf-b.uf;
+    if(o==='m2') return b.m2-a.m2; if(o==='m2a') return a.m2-b.m2;
+    return b.sc-a.sc; });
 }
 function render(){
   const rows=filt();
@@ -926,7 +937,7 @@ const sharedPop=L.popup({maxWidth:340});
 let mapSig='';
 function renderMap(rows){
   const pts=rows.filter(d=>d.lat).slice(0,1700);
-  const sig=state.cmode+'|'+pts.length+'|'+(pts.length?pts[0].id+'-'+pts[pts.length-1].id:'')+'|'+state.est+'|'+state.reg+'|'+state.tier+'|'+state.capa+'|'+state.q+'|'+state.ord;
+  const sig=state.cmode+'|'+pts.length+'|'+(pts.length?pts[0].id+'-'+pts[pts.length-1].id:'')+'|'+state.est+'|'+state.reg+'|'+state.tier+'|'+state.capa+'|'+state.q+'|'+state.ord+'|'+state.szMin+'-'+state.szMax+'|'+state.ufMin+'-'+state.ufMax;
   if(sig===mapSig) return;
   mapSig=sig;
   layer.clearLayers();
@@ -1036,6 +1047,17 @@ REGS.forEach(r=>{const b=document.createElement('button');b.className='chip';b.t
     if(!has){ state.reg='Todas'; [...regs.children].forEach(c=>c.setAttribute('aria-pressed',c.textContent==='Todas')); }
   }
   render();}));
+// rangos tamaño / precio
+let rT; const RNG={szMin:'szMin',szMax:'szMax',ufMin:'ufMin',ufMax:'ufMax'};
+Object.keys(RNG).forEach(id=>document.getElementById(id).addEventListener('input',e=>{
+  const v=e.target.value.trim(); state[id]=v===''?null:Math.max(0,+v);
+  clearTimeout(rT); rT=setTimeout(()=>{state.shown=300;render();},220); }));
+document.getElementById('clr').onclick=()=>{
+  state={...state,q:'',reg:'Todas',tier:'',capa:'',ord:'sc',est:'',szMin:null,szMax:null,ufMin:null,ufMax:null,shown:300};
+  ['q','tier','capa','ord','szMin','szMax','ufMin','ufMax'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+  document.getElementById('ord').value='sc';
+  [...regs.children].forEach(c=>c.setAttribute('aria-pressed',c.textContent==='Todas'));
+  render(); };
 document.getElementById('theme').onclick=()=>{const r=document.documentElement;
   const dark=r.getAttribute('data-theme')==='dark'||(!r.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme:dark)').matches);
   r.setAttribute('data-theme',dark?'light':'dark');};
