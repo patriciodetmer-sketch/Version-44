@@ -733,8 +733,12 @@ body.tableview #list,body.tableview #mapwrap{display:none}
 body.tableview #gridwrap{display:block}
 #grid{border-collapse:separate;border-spacing:0;font-size:12px;width:max-content;min-width:100%}
 #grid th,#grid td{padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap;text-align:left;vertical-align:top}
-#grid thead th{position:sticky;top:0;z-index:2;background:var(--surface2);cursor:pointer;user-select:none;font-weight:600;border-bottom:2px solid var(--borderS)}
-#grid thead th:hover{color:var(--accent)}
+#grid thead th{position:sticky;top:0;z-index:2;background:var(--surface2);user-select:none;font-weight:600;border-bottom:2px solid var(--borderS);min-width:92px}
+#grid .thl{cursor:pointer}
+#grid .thl:hover{color:var(--accent)}
+#grid .thf{margin-top:5px;font-weight:400}
+#grid .thf input,#grid .thf select{width:100%;box-sizing:border-box;font-size:11px;padding:3px 5px;border:1px solid var(--borderS);border-radius:5px;background:var(--surface);color:var(--text)}
+#grid .thf input:focus,#grid .thf select:focus{border-color:var(--accent);outline:none}
 #grid thead th .ar{color:var(--accent);font-size:10px;margin-left:3px}
 #grid tbody tr{cursor:pointer}
 #grid tbody tr:nth-child(even){background:var(--surface2)}
@@ -854,7 +858,7 @@ const g=d=>G[gid(d)]||{};
 function save(d,patch){ const k=gid(d); G[k]={...(G[k]||{}),...patch}; localStorage.setItem(KEY,JSON.stringify(G));
   if(markers[d.id]) markers[d.id].setStyle({fillColor:mcol(d)}); }
 // ---- estado ----
-let state={q:'',reg:'Todas',tier:'',capa:'',ord:'sc',cmode:'score',est:'',pot:'',szMin:null,szMax:null,ufMin:null,ufMax:null,shown:300,active:null,view:'map',gkey:'sc',gdir:-1};
+let state={q:'',reg:'Todas',tier:'',capa:'',ord:'sc',cmode:'score',est:'',pot:'',szMin:null,szMax:null,ufMin:null,ufMax:null,shown:300,active:null,view:'map',gkey:'sc',gdir:-1,gf:{}};
 // ---- mapa ----
 const map=L.map('map',{preferCanvas:true}).setView([-30.5,-70.9],4.6);
 const CANVAS=L.canvas({padding:.35});
@@ -983,31 +987,48 @@ const GCOLS=[
   {k:'pp',t:'Potencial',wrap:1,r:(d)=>d.pp||d.voc||'—'}
 ];
 function gval(d,c){ if(c.v) return c.v(d); if(c.g) return ENAME[g(d).est||'none']||''; return d[c.k]; }
+// tipo de filtro por columna: sel=desplegable, num=≥ número, txt=contiene texto
+const FTYPE={sc:'num',bd:'sel',est:'sel',n:'txt',com:'sel',reg:'sel',rol:'txt',tier:'sel',m2:'num',uf:'num',usd:'num',avf:'num',siiU:'num',mo:'sel',z:'txt',up:'txt',upr:'txt',inst:'sel',alt:'sel',cm:'sel',ind:'sel',pp:'txt'};
+const gesc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const GCAP=2000;
+function gDistinct(rows,c){ const s=new Set(); rows.forEach(d=>{const v=gval(d,c); if(v!=null&&v!=='') s.add(String(v));}); return [...s].sort((a,b)=>a.localeCompare(b,'es',{numeric:true})); }
+function gridApply(rows){ const gf=state.gf; return rows.filter(d=>GCOLS.every(c=>{ const fv=gf[c.k]; if(fv==null||fv==='') return true; const raw=gval(d,c); const t=FTYPE[c.k]||'txt';
+  if(t==='num') return (+raw||0)>=(+fv||0);
+  const s=(raw==null?'':String(raw)).toLowerCase();
+  if(t==='sel') return s===String(fv).toLowerCase();
+  return s.includes(String(fv).toLowerCase()); })); }
+function gridSort(arr){ const col=GCOLS.find(c=>c.k===state.gkey)||GCOLS[0]; const dir=state.gdir;
+  return arr.slice().sort((a,b)=>{ let va=gval(a,col),vb=gval(b,col);
+    if(col.n){va=+va||0;vb=+vb||0;return (va-vb)*dir;}
+    va=(va==null?'':String(va)).toLowerCase();vb=(vb==null?'':String(vb)).toLowerCase();
+    return va<vb?-dir:va>vb?dir:0; }); }
+function bodyRows(shown){ let h=''; shown.forEach(d=>{ h+='<tr data-id="'+d.id+'">';
+  GCOLS.forEach(c=>{ const cls=(c.n?'num':'')+(c.wrap?' wrap':''); const val=c.r?c.r(d):(d[c.k]==null||d[c.k]===''?'—':d[c.k]); h+='<td class="'+cls+'">'+val+'</td>'; });
+  h+='</tr>'; }); return h; }
+let gBT;
+function updateGridBody(){ const rows=filt(); const filtered=gridApply(rows); const sorted=gridSort(filtered);
+  const tb=document.querySelector('#grid tbody'); if(!tb) return;
+  tb.innerHTML=bodyRows(sorted.slice(0,GCAP));
+  tb.querySelectorAll('tr').forEach(tr=>tr.onclick=()=>openDrawer(+tr.dataset.id));
+  const gc=document.getElementById('gridcount'); if(gc) gc.textContent=filtered.length.toLocaleString('es-CL')+' de '+rows.length.toLocaleString('es-CL')+' filtrados'+(filtered.length>GCAP?' · mostrando '+GCAP:''); }
 function renderGrid(rows){
   const gw=document.getElementById('gridwrap');
-  const col=GCOLS.find(c=>c.k===state.gkey)||GCOLS[0];
   const dir=state.gdir;
-  const sorted=rows.slice().sort((a,b)=>{
-    let va=gval(a,col), vb=gval(b,col);
-    if(col.n){ va=+va||0; vb=+vb||0; return (va-vb)*dir; }
-    va=(va==null?'':String(va)).toLowerCase(); vb=(vb==null?'':String(vb)).toLowerCase();
-    return va<vb?-dir:va>vb?dir:0;
-  });
-  const CAP=2000; const shown=sorted.slice(0,CAP);
-  let h='<div id="gridtop">'+rows.length.toLocaleString('es-CL')+' predios · clic en un encabezado para ordenar · clic en una fila para gestionar'+(sorted.length>CAP?' · mostrando '+CAP:'')+'</div>';
+  const filtered=gridApply(rows); const sorted=gridSort(filtered); const shown=sorted.slice(0,GCAP);
+  let h='<div id="gridtop"><span id="gridcount">'+filtered.length.toLocaleString('es-CL')+' de '+rows.length.toLocaleString('es-CL')+' filtrados'+(filtered.length>GCAP?' · mostrando '+GCAP:'')+'</span> · clic en el título ordena · usa los desplegables/campos para filtrar cada columna · clic en fila = gestionar</div>';
   h+='<table id="grid"><thead><tr>';
-  GCOLS.forEach(c=>{ const ar=state.gkey===c.k?'<span class="ar">'+(dir<0?'▼':'▲')+'</span>':''; h+='<th data-k="'+c.k+'">'+c.t+ar+'</th>'; });
-  h+='</tr></thead><tbody>';
-  shown.forEach(d=>{
-    h+='<tr data-id="'+d.id+'">';
-    GCOLS.forEach(c=>{ const cls=(c.n?'num':'')+(c.wrap?' wrap':''); const val=c.r?c.r(d):(d[c.k]==null||d[c.k]===''?'—':d[c.k]); h+='<td class="'+cls+'">'+val+'</td>'; });
-    h+='</tr>';
-  });
-  h+='</tbody></table>';
+  GCOLS.forEach(c=>{ const ar=state.gkey===c.k?'<span class="ar">'+(dir<0?'▼':'▲')+'</span>':'';
+    const t=FTYPE[c.k]||'txt'; let ctl;
+    if(t==='sel'){ const opts=gDistinct(rows,c); ctl='<select data-k="'+c.k+'"><option value="">(todos)</option>'+opts.map(o=>'<option'+(String(state.gf[c.k]||'')===o?' selected':'')+'>'+gesc(o)+'</option>').join('')+'</select>'; }
+    else ctl='<input data-k="'+c.k+'" type="search" placeholder="'+(t==='num'?'≥ mín':'contiene…')+'" value="'+gesc(state.gf[c.k]||'')+'"/>';
+    h+='<th><div class="thl" data-k="'+c.k+'">'+c.t+ar+'</div><div class="thf">'+ctl+'</div></th>'; });
+  h+='</tr></thead><tbody>'+bodyRows(shown)+'</tbody></table>';
   gw.innerHTML=h;
-  gw.querySelectorAll('#grid thead th').forEach(th=>th.onclick=()=>{ const k=th.dataset.k;
+  gw.querySelectorAll('#grid .thl').forEach(el=>el.onclick=()=>{ const k=el.dataset.k;
     if(state.gkey===k) state.gdir=-state.gdir; else { state.gkey=k; state.gdir=(GCOLS.find(c=>c.k===k).n?-1:1); }
     renderGrid(filt()); });
+  gw.querySelectorAll('#grid .thf select').forEach(sel=>sel.onchange=e=>{ state.gf[e.target.dataset.k]=e.target.value; updateGridBody(); });
+  gw.querySelectorAll('#grid .thf input').forEach(inp=>inp.oninput=e=>{ const k=e.target.dataset.k,v=e.target.value; clearTimeout(gBT); gBT=setTimeout(()=>{ state.gf[k]=v; updateGridBody(); },200); });
   gw.querySelectorAll('#grid tbody tr').forEach(tr=>tr.onclick=()=>openDrawer(+tr.dataset.id));
 }
 const sharedPop=L.popup({maxWidth:340});
@@ -1130,7 +1151,7 @@ Object.keys(RNG).forEach(id=>document.getElementById(id).addEventListener('input
   const v=e.target.value.trim(); state[id]=v===''?null:Math.max(0,+v);
   clearTimeout(rT); rT=setTimeout(()=>{state.shown=300;render();},220); }));
 document.getElementById('clr').onclick=()=>{
-  state={...state,q:'',reg:'Todas',tier:'',capa:'',ord:'sc',est:'',pot:'',szMin:null,szMax:null,ufMin:null,ufMax:null,shown:300};
+  state={...state,q:'',reg:'Todas',tier:'',capa:'',ord:'sc',est:'',pot:'',szMin:null,szMax:null,ufMin:null,ufMax:null,shown:300,gf:{}};
   ['q','tier','capa','ord','pot','szMin','szMax','ufMin','ufMax'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
   document.getElementById('ord').value='sc';
   [...regs.children].forEach(c=>c.setAttribute('aria-pressed',c.textContent==='Todas'));
