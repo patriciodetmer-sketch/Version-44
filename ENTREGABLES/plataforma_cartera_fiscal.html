@@ -1109,7 +1109,7 @@ window.openDrawer=function(id){
     +'<div class="linkrow" style="margin-top:8px">'
     +(d.lat?'<a href="https://www.google.com/maps?q='+d.lat+','+d.lon+'" target="_blank" rel="noopener">📍 Google Maps</a>':'')
     +'<a href="https://portalipt.minvu.cl/" target="_blank" rel="noopener">📄 Portal IPT</a></div></div>'
-  +(d.top?'<div class="sec"><h3>Normativa Plan Regulador</h3><div class="norm">'
+  +((d.top||d.up||d.z||d.upr)?'<div class="sec"><h3>Normativa Plan Regulador</h3><div class="norm">'
     +((d.z||d.zn)?'<span class="pz">'+(d.z||'')+(d.zn&&d.zn!==d.z?' — '+d.zn:'')+'</span>':'')
     +row('Uso permitido',d.up)+row('Uso prohibido',d.upr)+row('Instrumento',d.inst)+row('Publicación D.O.',d.fdo)+row('Documento',d.doc)
     +'</div></div>'
