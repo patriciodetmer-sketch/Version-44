@@ -41,17 +41,22 @@ Nacionales), la valorizamos, la rankeamos y cruzamos con Planes Reguladores (MIN
 - Filtro falsos positivos: cerros, parques, fajas viales/FFCC, >10 ha.
 - Norte sin campo de tenencia limpio → clasificación por texto (marcada "gruesa").
 
-## Valor de suelo SII (en curso)
-- Fuente gratuita: SII Mapas (`www4.sii.cl/mapasui`) → `getPredioNacional` devuelve
-  `datosAh.valorUnitario` (CLP/m² del Área Homogénea, reavalúo 2022) y `valorTotal` (avalúo).
-- **Causa del fallo previo:** el SII usa códigos de comuna internos (Las Condes=15108,
-  Quilicura=14114, Santiago=13101) que NO son los INE. El capturador viejo usaba códigos
-  INE → sólo Santiago resolvía (12/1.476). Diagnosticado desde el HAR `0d197676-www4.sii.cl.har`.
-- **Solución:** `capturar_sii_v2.js` (un solo script) resuelve el código de cada comuna en
-  3 fases (catálogo → validación con predio real → escaneo `getServicioPredio` por bloque
-  de región) y luego captura los valores. Descarga `sii_comunas.json` + `sii_valores_suelo.csv`.
-- Al recibir el CSV: `python3 scratchpad/fusionar_sii.py <csv>` fusiona en `plataforma_data.json`
-  (sii_uf_m2, sii_suelo_uf, comercial_UF rango ÷0.75–0.60, sii_avaluo) y genera `valores_suelo_sii.csv`.
+## Valor de suelo SII (CERRADO — 28 valores oficiales integrados)
+Objetivo: valor de suelo oficial del SII (Área Homogénea, $/m²) por predio. Resultado:
+28 predios con valor oficial integrado como ancla; el resto queda con la valorización de
+referencia del modelo. La cobertura total no es alcanzable con fuentes públicas bulk.
+- **Códigos de comuna del SII resueltos** (52/65) — son internos, NO INE (Las Condes=15108,
+  Quilicura=14114, Ñuñoa=15105…). Tabla en `sii_code_table.json`. Diagnóstico desde el HAR.
+- **Por qué sólo 28:** `getPredioNacional` exige el rol de avalúo EXACTO del SII; el catastro
+  de Bienes Nacionales casi nunca coincide → ~35 aciertos de 1.476. Además el SII bloquea por
+  volumen. Confirmado: 1.441/1.476 devolvieron nulo por no-coincidencia de rol.
+- **Vías descartadas:** (a) SII Mapas WMS sólo entrega tiles (GetFeatureInfo→HTTP 400, probado);
+  (b) capas de Áreas Homogéneas con valor en ArcGIS existen pero son estudios locales
+  (Punta Arenas, 3 balnearios V región) — NO cubren las regiones objetivo.
+- **Integrado en la plataforma:** campos `siiU` (UF/m²), `siiT` (suelo UF), `siiA` (código AH),
+  `siiV` (avalúo fiscal SII) en los 28 predios; se muestran en el drawer. CSV: `valores_suelo_sii.csv`.
+- Scripts (histórico): `capturar_sii_v2.js`, `capturar_sii_valores.js`, `capturar_sii_geo.js`,
+  `capturar_sii_diag.js`, `probe_arcgis_ah.js`, `probe_cobertura.js`. Fusión: `scratchpad/fusionar_sii.py`.
 
 ## Pendientes / próximos pasos posibles
 1. El usuario tiene pendiente correr `capturar_norma_completa.js` (captura TODOS los campos

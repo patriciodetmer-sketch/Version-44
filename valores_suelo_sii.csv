@@ -1,29 +1,29 @@
-﻿id;rol;comuna;AH;valor_UF_m2_SII;valor_suelo_UF_SII;comercial_UF_estimado_rango;avaluo_fiscal_UF
-2;159-1;Santiago;CMM013;74.38;914800;1,524,666-1,219,733;500146
-6;7188-1, 7188-3 Y 7188-4;Penalolen;XBB020;3.72;25393;42,321-33,857;25515
-7;36-10;Santiago;CMA064;53.78;161286;268,810-215,048;1233104
-8;3963-7 Y 3963-8;Nunoa;HAA104;13.58;26155;43,592-34,873;75078
-9;176-3 Y 176-4;Santiago;XMM011;54.29;120089;200,149-160,119;53006
-11;5444-7;Estacion Central;HBB027;2.91;10202;17,004-13,603;8485
-12;35-58;Santiago;CMA064;53.78;96804;161,340-129,072;222321
-13;1230-8;Renca;XBB005;2.37;13611;22,685-18,148;22159
-15;42-50;Santiago;XMM018;56.94;62349;103,916-83,132;55000
-17;276-1;Santiago;CMM007;68.07;59697;99,496-79,597;642148
-18;35-58;Santiago;CMA064;53.78;34957;58,262-46,609;222321
-19;3513-3;Quinta Normal;XBB017;3.23;4522;7,537-6,029;7586
-21;151-11;Penaflor;XMB026;2.59;6954;11,590-9,272;8897
-22;1382-2;La Florida;CMB126;22.1;27448;45,747-36,598;28981
-23;536-15;La Florida;HBB025;2.87;3444;5,740-4,592;4355
-25;676-2;Santiago;CMM053;10.98;4776;7,960-6,368;16714
-29;541-33;Renca;HBB014;2.95;1522;2,537-2,030;4408
-30;3193-11;Recoleta;HBB014;2.78;556;927-741;859
-31;"546-1; 546-2; 546-3";Renca;HBB014;2.34;669;1,115-892;2220
-32;3519-18;Lo Barnechea;HBB007;5.5;197109;328,515-262,812;262503
-33;84-1;Santiago;CMA064;53.78;2175186;3,625,310-2,900,248;627244
-34;2516-39;La Florida;EMB540;4.02;171767;286,278-229,022;180983
-36;603-1;Concepcion;XMB070;8.05;120645;201,076-160,860;44446
-40;4031-81;Concepcion;HBB185;1.18;2195;3,658-2,926;2676
-41;197-20;Talcahuano;XBB004;1.19;2463;4,106-3,284;3245
-42;1352-23;Concepcion;HBB094;0.94;1090;1,817-1,454;3684
-43;145-23;Concepcion;HMB041;8.54;6533;10,888-8,711;9609
-44;64-24;Concepcion;XMM036;16.31;4697;7,829-6,263;7540
+﻿id;nombre;comuna;region;rol;m2;AH_SII;valor_UF_m2_SII;valor_suelo_UF_SII;avaluo_fiscal_UF_SII;valor_modelo_UF
+33;Teatinos 120 Comuna Santiago;Santiago;Metropolitana;84-1;40446;CMA064;53.78;2175186;627244;1415594
+2;Catedral 1150 Comuna Santiago;Santiago;Metropolitana;159-1;12299;CMM013;74.38;914800;500146;430451
+32;Lote F-2 Comuna Lo Barnechea;Lo Barnechea;Metropolitana;3519-18;35838;HBB007;5.5;197109;262503;1433513
+34;Santa Amalia 1022 Comuna La Florida;La Florida;Metropolitana;2516-39;42728;EMB540;4.02;171767;180983;598192
+7;Moneda 1326 Lote A Comuna Santiago;Santiago;Metropolitana;36-10;2999;CMA064;53.78;161286;1233104;104971
+36;Paicavi 1320 Lote 1 Comuna Concepcion;Concepcion;Biobío;603-1;14987;XMB070;8.05;120645;44446;269762
+9;Monjitas 653 - 695 Comuna Santiago;Santiago;Metropolitana;176-3 Y 176-4;2212;XMM011;54.29;120089;53006;77420
+12;Teatinos 40 Comuna Santiago;Santiago;Metropolitana;35-58;1800;CMA064;53.78;96804;222321;63000
+15;Amunategui 66 Comuna Santiago;Santiago;Metropolitana;42-50;1095;XMM018;56.94;62349;55000;38325
+17;Balmaceda 1301 Comuna Santiago;Santiago;Metropolitana;276-1;877;CMM007;68.07;59697;642148;30682
+18;Teatinos 28 Teatinos 40 Comuna Santiago;Santiago;Metropolitana;35-58;650;CMA064;53.78;34957;222321;22750
+22;Yokohama 6865 Comuna La Florida;La Florida;Metropolitana;1382-2;1242;CMB126;22.1;27448;28981;17393
+8;"San Jorge 57 Manzana Tercera Sitio 2; Irarrazaval 4957 Manzana 3 Sitio 1 Parte; Comuna Nunoa";Nunoa;Metropolitana;3963-7 Y 3963-8;1926;HAA104;13.58;26155;75078;80882
+6;Grecia 6891 Comuna Penalolen;Penalolen;Metropolitana;7188-1, 7188-3 Y 7188-4;6826;XBB020;3.72;25393;25515;109220
+13;Caupolican 1481 Comuna Renca;Renca;Metropolitana;1230-8;5743;XBB005;2.37;13611;22159;57425
+11;Las Estepas 845 Comuna Estacion Central;Estacion Central;Metropolitana;5444-7;3506;HBB027;2.91;10202;8485;63111
+21;Doctor Prado Tagle 156 Comuna Penaflor;Penaflor;Metropolitana;151-11;2685;XMB026;2.59;6954;8897;18795
+43;Janequeo 354 Al 360 Lotes 1A-1B-1C Comuna Concepcion;Concepcion;Biobío;145-23;765;HMB041;8.54;6533;9609;13764
+25;Portugal 623 - 627 Comuna Santiago;Santiago;Metropolitana;676-2;435;CMM053;10.98;4776;16714;15225
+44;Lincoyan 156 Pisos 1 Y 2 Comuna Concepcion;Concepcion;Biobío;64-24;288;XMM036;16.31;4697;7540;5190
+19;General Novoa 4183 Lote 1-A Y Lote 1-B Comuna Quinta Normal;Quinta Normal;Metropolitana;3513-3;1400;XBB017;3.23;4522;7586;22400
+23;Chacon Zamora 6997 Villa Los Copihues Comuna La Florida;La Florida;Metropolitana;536-15;1200;HBB025;2.87;3444;4355;16800
+41;Bilbao 246 Comuna Talcahuano;Talcahuano;Biobío;197-20;2070;XBB004;1.19;2463;3245;24844
+40;Providencia 279 Manzana Parcela 22 Sitio 80 Comuna Concepcion;Concepcion;Biobío;4031-81;1860;HBB185;1.18;2195;2676;33480
+29;Nueva 4832 Comuna Renca;Renca;Metropolitana;541-33;516;HBB014;2.95;1522;4408;5163
+42;Pasaje 21 2030 Teniente Merino 1 Comuna Concepcion;Concepcion;Biobío;1352-23;1160;HBB094;0.94;1090;3684;20881
+31;Arturo Prat 4899 Comuna Renca;Renca;Metropolitana;"546-1; 546-2; 546-3";286;HBB014;2.34;669;2220;2860
+30;Antonia Prado 0603 Comuna Recoleta;Recoleta;Metropolitana;3193-11;200;HBB014;2.78;556;859;4000
