@@ -914,6 +914,9 @@ function render(){
     it.onclick=()=>{ goTo(d); openDrawer(d.id); };
     el.appendChild(it);
   });
+  if(rows.length===0){ const e=document.createElement('div'); e.style.cssText='padding:24px 16px;color:var(--faint);font-size:13px;line-height:1.5';
+    e.innerHTML='Sin predios con estos filtros.<br>Nota: los <b>Top 250 (norma)</b> están sólo en Metropolitana, Valparaíso y Biobío — no hay en Tarapacá ni Antofagasta. Prueba con la región <b>Todas</b>.';
+    el.appendChild(e); }
   if(rows.length>state.shown){ const b=document.createElement('button'); b.id='more';
     b.textContent='Mostrar más ('+(rows.length-state.shown).toLocaleString('es-CL')+' restantes)';
     b.onclick=()=>{state.shown+=400;render();}; el.appendChild(b); }
@@ -1032,7 +1035,13 @@ let qT; document.getElementById('q').addEventListener('input',e=>{ clearTimeout(
 const regs=document.getElementById('regs');
 REGS.forEach(r=>{const b=document.createElement('button');b.className='chip';b.textContent=r;b.setAttribute('aria-pressed',r==='Todas');
   b.onclick=()=>{state.reg=r;[...regs.children].forEach(c=>c.setAttribute('aria-pressed',c.textContent===r));state.shown=300;render();};regs.appendChild(b);});
-['tier','capa','ord','cmode'].forEach(id=>document.getElementById(id).addEventListener('change',e=>{state[id]=e.target.value;state.shown=300;render();}));
+['tier','capa','ord','cmode'].forEach(id=>document.getElementById(id).addEventListener('change',e=>{state[id]=e.target.value;state.shown=300;
+  // si la capa elegida no tiene predios en la región activa, vuelve a "Todas" para no quedar en 0
+  if(id==='capa'&&state.reg!=='Todas'){
+    const has=D.some(d=>d.reg===state.reg&&(state.capa!=='top'||d.top)&&(state.capa!=='norte'||d.voc)&&(state.capa!=='fav'||G[gid(d)]));
+    if(!has){ state.reg='Todas'; [...regs.children].forEach(c=>c.setAttribute('aria-pressed',c.textContent==='Todas')); }
+  }
+  render();}));
 document.getElementById('theme').onclick=()=>{const r=document.documentElement;
   const dark=r.getAttribute('data-theme')==='dark'||(!r.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme:dark)').matches);
   r.setAttribute('data-theme',dark?'light':'dark');};
