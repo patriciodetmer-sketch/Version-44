@@ -41,6 +41,18 @@ Nacionales), la valorizamos, la rankeamos y cruzamos con Planes Reguladores (MIN
 - Filtro falsos positivos: cerros, parques, fajas viales/FFCC, >10 ha.
 - Norte sin campo de tenencia limpio → clasificación por texto (marcada "gruesa").
 
+## Valor de suelo SII (en curso)
+- Fuente gratuita: SII Mapas (`www4.sii.cl/mapasui`) → `getPredioNacional` devuelve
+  `datosAh.valorUnitario` (CLP/m² del Área Homogénea, reavalúo 2022) y `valorTotal` (avalúo).
+- **Causa del fallo previo:** el SII usa códigos de comuna internos (Las Condes=15108,
+  Quilicura=14114, Santiago=13101) que NO son los INE. El capturador viejo usaba códigos
+  INE → sólo Santiago resolvía (12/1.476). Diagnosticado desde el HAR `0d197676-www4.sii.cl.har`.
+- **Solución:** `capturar_sii_v2.js` (un solo script) resuelve el código de cada comuna en
+  3 fases (catálogo → validación con predio real → escaneo `getServicioPredio` por bloque
+  de región) y luego captura los valores. Descarga `sii_comunas.json` + `sii_valores_suelo.csv`.
+- Al recibir el CSV: `python3 scratchpad/fusionar_sii.py <csv>` fusiona en `plataforma_data.json`
+  (sii_uf_m2, sii_suelo_uf, comercial_UF rango ÷0.75–0.60, sii_avaluo) y genera `valores_suelo_sii.csv`.
+
 ## Pendientes / próximos pasos posibles
 1. El usuario tiene pendiente correr `capturar_norma_completa.js` (captura TODOS los campos
    de la norma PRC → `zonas_prc_full_top250.csv`); al subirlo, fusionar en la planilla final.
