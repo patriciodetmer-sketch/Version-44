@@ -849,8 +849,10 @@ try{
   const MIN='https://geoide.minvu.cl/server/rest/services/IPT/';
   // capa sólo visual (sin identify) para no interferir con el clic de los predios
   const mkPrc=p=>L.esri.dynamicMapLayer({url:MIN+p+'/MapServer',opacity:.45,interactive:false});
-  const prcLayers={'🗺 PRC RM Norte':mkPrc('PRC_RM_Norte'),'🗺 PRC RM Sur':mkPrc('PRC_RM_Sur'),
-    '🗺 PRC Valparaíso':mkPrc('PRC_Valpara%C3%ADso'),'🗺 PRC Biobío':mkPrc('PRC_Biobio')};
+  const prcLayers={
+    '🗺 PRC Metropolitana N':mkPrc('PRC_RM_Norte'),'🗺 PRC Metropolitana S':mkPrc('PRC_RM_Sur'),
+    '🗺 PRC Valparaíso':mkPrc('PRC_Valpara%C3%ADso'),'🗺 PRC Biobío':mkPrc('PRC_Biobio'),
+    '🗺 PRC Antofagasta':mkPrc('PRC_Antofagasta'),'🗺 PRC Tarapacá':mkPrc('PRC_Tarapac%C3%A1')};
   L.control.layers(null,prcLayers,{collapsed:true,position:'topright'}).addTo(map);
  }
 }catch(e){ console.warn('Capa PRC no disponible',e); }
