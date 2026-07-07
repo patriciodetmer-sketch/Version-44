@@ -1031,6 +1031,28 @@ function renderGrid(rows){
   gw.querySelectorAll('#grid .thf input').forEach(inp=>inp.oninput=e=>{ const k=e.target.dataset.k,v=e.target.value; clearTimeout(gBT); gBT=setTimeout(()=>{ state.gf[k]=v; updateGridBody(); },200); });
   gw.querySelectorAll('#grid tbody tr').forEach(tr=>tr.onclick=()=>openDrawer(+tr.dataset.id));
 }
+// ---- Norma PRC en vivo desde el MINVU (para cualquier predio, ej. Antofagasta) ----
+const PRCSVC={'Metropolitana':['PRC_RM_Norte','PRC_RM_Sur'],'Valparaíso':['PRC_Valpara%C3%ADso'],'Biobío':['PRC_Biobio'],'Antofagasta':['PRC_Antofagasta'],'Tarapacá':['PRC_Tarapac%C3%A1']};
+const MINU='https://geoide.minvu.cl/server/rest/services/IPT/';
+function idPRC(svc,latlng){ return new Promise(res=>{ try{
+  if(!(L.esri&&L.esri.identifyFeatures)) return res([]);
+  L.esri.identifyFeatures({url:MINU+svc+'/MapServer'}).on(map).at(latlng).tolerance(4).returnGeometry(false)
+   .run((err,fc)=>res((err||!fc||!fc.features)?[]:fc.features)); }catch(e){ res([]); } }); }
+async function showPRC(d,box,btn){
+  if(!d||!d.lat){ box.innerHTML='<span style="color:var(--faint)">Predio sin coordenadas.</span>'; return; }
+  box.innerHTML='<span style="color:var(--muted)">Consultando MINVU… (unos segundos)</span>'; if(btn)btn.disabled=true;
+  try{ map.setView([d.lat,d.lon],16); map.invalidateSize(); }catch(e){}
+  await new Promise(r=>setTimeout(r,450));
+  const svcs=PRCSVC[d.reg]||[]; let feats=[];
+  for(const s of svcs){ try{ feats=feats.concat(await idPRC(s,[d.lat,d.lon])); }catch(e){} }
+  if(btn)btn.disabled=false;
+  if(!feats.length){ box.innerHTML='<span style="color:var(--faint)">El MINVU no devolvió zona PRC en este punto. Puede no haber PRC vigente aquí, o el servicio del MINVU está lento/caído — reintenta en unos segundos.</span>'; return; }
+  let h='';
+  feats.slice(0,4).forEach(f=>{ const p=f.properties||{}; const rr=[];
+    for(const k of Object.keys(p)){ const v=p[k]; if(v!=null&&String(v).trim()&&!/^(objectid|shape|fid|st_area|st_length|globalid)/i.test(k)) rr.push('<div class="pr"><span class="pk">'+k+':</span> '+v+'</div>'); }
+    if(rr.length) h+='<div class="norm" style="margin-bottom:9px">'+(f.layerName?'<span class="pz">'+f.layerName+'</span>':'')+rr.join('')+'</div>'; });
+  box.innerHTML=h||'<span style="color:var(--faint)">Zona encontrada, sin atributos legibles.</span>';
+}
 const sharedPop=L.popup({maxWidth:340});
 let mapSig='';
 function renderMap(rows){
@@ -1092,10 +1114,12 @@ window.openDrawer=function(id){
     +row('Uso permitido',d.up)+row('Uso prohibido',d.upr)+row('Instrumento',d.inst)+row('Publicación D.O.',d.fdo)+row('Documento',d.doc)
     +'</div></div>'
    :(d.voc?'<div class="sec"><h3>Contexto territorial</h3><div class="norm">'+row('Vocación',d.voc)+row('Contexto',d.ctx)+'</div></div>'
-   :'<div class="sec"><h3>Normativa</h3><div class="norm" style="color:var(--faint)">Fuera del top 250: norma PRC no capturada aún.</div></div>'))
+   :'<div class="sec"><h3>Normativa</h3><div class="norm" style="color:var(--faint)">Norma PRC no precargada para este predio — consúltala en vivo abajo.</div></div>'))
+  +((d.lat)?'<div class="sec"><h3>Norma PRC en vivo (MINVU)</h3><button id="prcbtn" class="hbtn" style="width:100%;justify-content:center">🔎 Consultar zona del Plan Regulador</button><div id="prcbox" style="margin-top:9px;font-size:12.5px"></div></div>':'')
   +'</div>';
   dr.classList.add('open');
   // eventos
+  const pb=dr.querySelector('#prcbtn'); if(pb) pb.onclick=()=>showPRC(d,dr.querySelector('#prcbox'),pb);
   dr.querySelector('#g-est').onchange=e=>{save(d,{est:e.target.value});render();openDrawer(id);};
   dr.querySelector('#g-pri').onchange=e=>{save(d,{pri:e.target.value});};
   dr.querySelector('#g-val').onchange=e=>{save(d,{val:e.target.value?+e.target.value:null});};
