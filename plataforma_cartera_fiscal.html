@@ -779,6 +779,7 @@ footer{padding:7px 18px;border-top:1px solid var(--border);background:var(--surf
   <div id="regs" style="display:flex;gap:5px;flex-wrap:wrap"></div>
   <select id="tier"><option value="">Tier: todos</option><option value="1">Tier 1</option><option value="2">Tier 2</option></select>
   <select id="capa"><option value="">Todos</option><option value="top">Top 250 (norma)</option><option value="norte">Norte</option><option value="fav">Con gestión</option></select>
+  <select id="pot"><option value="">Potencial: todos</option><option value="alt">🏗 Altura alta</option><option value="cm">🏬 Comercial alto</option><option value="ind">🏭 Industrial alto</option><option value="any">⭐ Cualquiera alto</option></select>
   <select id="ord"><option value="sc">Orden: score</option><option value="uf">Valor (UF) ↓</option><option value="ufa">Valor (UF) ↑</option><option value="m2">Superficie ↓</option><option value="m2a">Superficie ↑</option></select>
   <span class="rng" title="Filtrar por superficie"><input id="szMin" type="number" min="0" step="100" placeholder="m² mín"/><span>–</span><input id="szMax" type="number" min="0" step="100" placeholder="m² máx"/></span>
   <span class="rng" title="Filtrar por valor del modelo (UF)"><input id="ufMin" type="number" min="0" step="1000" placeholder="UF mín"/><span>–</span><input id="ufMax" type="number" min="0" step="1000" placeholder="UF máx"/></span>
@@ -834,7 +835,7 @@ const g=d=>G[gid(d)]||{};
 function save(d,patch){ const k=gid(d); G[k]={...(G[k]||{}),...patch}; localStorage.setItem(KEY,JSON.stringify(G));
   if(markers[d.id]) markers[d.id].setStyle({fillColor:mcol(d)}); }
 // ---- estado ----
-let state={q:'',reg:'Todas',tier:'',capa:'',ord:'sc',cmode:'score',est:'',szMin:null,szMax:null,ufMin:null,ufMax:null,shown:300,active:null};
+let state={q:'',reg:'Todas',tier:'',capa:'',ord:'sc',cmode:'score',est:'',pot:'',szMin:null,szMax:null,ufMin:null,ufMax:null,shown:300,active:null};
 // ---- mapa ----
 const map=L.map('map',{preferCanvas:true}).setView([-30.5,-70.9],4.6);
 const CANVAS=L.canvas({padding:.35});
@@ -880,6 +881,7 @@ function filt(){
       &&(!state.est||est===state.est)
       &&(!state.szMin||d.m2>=state.szMin)&&(!state.szMax||d.m2<=state.szMax)
       &&(!state.ufMin||d.uf>=state.ufMin)&&(!state.ufMax||d.uf<=state.ufMax)
+      &&(!state.pot||(state.pot==='alt'?(d.alt||'').startsWith('Alto'):state.pot==='cm'?(d.cm||'').startsWith('Alto'):state.pot==='ind'?(d.ind||'').startsWith('Alto'):[d.alt,d.cm,d.ind].some(v=>(v||'').startsWith('Alto'))))
       &&(!q||d.com.toLowerCase().includes(q)||d.rol.toLowerCase().includes(q)||d.n.toLowerCase().includes(q)
         ||(d.pp||'').toLowerCase().includes(q)||(d.voc||'').toLowerCase().includes(q)||(d.z||'').toLowerCase().includes(q));
   }).sort((a,b)=>{ const o=state.ord;
@@ -937,7 +939,7 @@ const sharedPop=L.popup({maxWidth:340});
 let mapSig='';
 function renderMap(rows){
   const pts=rows.filter(d=>d.lat).slice(0,1700);
-  const sig=state.cmode+'|'+pts.length+'|'+(pts.length?pts[0].id+'-'+pts[pts.length-1].id:'')+'|'+state.est+'|'+state.reg+'|'+state.tier+'|'+state.capa+'|'+state.q+'|'+state.ord+'|'+state.szMin+'-'+state.szMax+'|'+state.ufMin+'-'+state.ufMax;
+  const sig=state.cmode+'|'+pts.length+'|'+(pts.length?pts[0].id+'-'+pts[pts.length-1].id:'')+'|'+state.est+'|'+state.reg+'|'+state.tier+'|'+state.capa+'|'+state.q+'|'+state.ord+'|'+state.pot+'|'+state.szMin+'-'+state.szMax+'|'+state.ufMin+'-'+state.ufMax;
   if(sig===mapSig) return;
   mapSig=sig;
   layer.clearLayers();
@@ -1040,7 +1042,7 @@ let qT; document.getElementById('q').addEventListener('input',e=>{ clearTimeout(
 const regs=document.getElementById('regs');
 REGS.forEach(r=>{const b=document.createElement('button');b.className='chip';b.textContent=r;b.setAttribute('aria-pressed',r==='Todas');
   b.onclick=()=>{state.reg=r;[...regs.children].forEach(c=>c.setAttribute('aria-pressed',c.textContent===r));state.shown=300;render();};regs.appendChild(b);});
-['tier','capa','ord','cmode'].forEach(id=>document.getElementById(id).addEventListener('change',e=>{state[id]=e.target.value;state.shown=300;
+['tier','capa','ord','cmode','pot'].forEach(id=>document.getElementById(id).addEventListener('change',e=>{state[id]=e.target.value;state.shown=300;
   // si la capa elegida no tiene predios en la región activa, vuelve a "Todas" para no quedar en 0
   if(id==='capa'&&state.reg!=='Todas'){
     const has=D.some(d=>d.reg===state.reg&&(state.capa!=='top'||d.top)&&(state.capa!=='norte'||d.voc)&&(state.capa!=='fav'||G[gid(d)]));
@@ -1053,8 +1055,8 @@ Object.keys(RNG).forEach(id=>document.getElementById(id).addEventListener('input
   const v=e.target.value.trim(); state[id]=v===''?null:Math.max(0,+v);
   clearTimeout(rT); rT=setTimeout(()=>{state.shown=300;render();},220); }));
 document.getElementById('clr').onclick=()=>{
-  state={...state,q:'',reg:'Todas',tier:'',capa:'',ord:'sc',est:'',szMin:null,szMax:null,ufMin:null,ufMax:null,shown:300};
-  ['q','tier','capa','ord','szMin','szMax','ufMin','ufMax'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+  state={...state,q:'',reg:'Todas',tier:'',capa:'',ord:'sc',est:'',pot:'',szMin:null,szMax:null,ufMin:null,ufMax:null,shown:300};
+  ['q','tier','capa','ord','pot','szMin','szMax','ufMin','ufMax'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
   document.getElementById('ord').value='sc';
   [...regs.children].forEach(c=>c.setAttribute('aria-pressed',c.textContent==='Todas'));
   render(); };
