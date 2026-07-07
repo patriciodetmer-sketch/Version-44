@@ -847,16 +847,8 @@ SatCtl.addTo(map);
 try{
  if(L.esri&&L.esri.dynamicMapLayer){
   const MIN='https://geoide.minvu.cl/server/rest/services/IPT/';
-  const mkPrc=p=>{
-    const ly=L.esri.dynamicMapLayer({url:MIN+p+'/MapServer',opacity:.45});
-    ly.bindPopup(function(err,fc){
-      if(err||!fc||!fc.features||!fc.features.length) return false;
-      const pr=fc.features[0].properties||{}; let h='<div class="qp"><div class="ph">Zonificación PRC (MINVU)</div>'; let any=false;
-      for(const k of Object.keys(pr)){ const v=pr[k]; if(v!=null&&String(v).trim()&&!/^(OBJECTID|Shape|FID|Shape_)/i.test(k)){ h+='<div><b>'+k+':</b> '+v+'</div>'; any=true; if(h.length>560)break; } }
-      return any?h+'</div>':false;
-    });
-    return ly;
-  };
+  // capa sólo visual (sin identify) para no interferir con el clic de los predios
+  const mkPrc=p=>L.esri.dynamicMapLayer({url:MIN+p+'/MapServer',opacity:.45,interactive:false});
   const prcLayers={'🗺 PRC RM Norte':mkPrc('PRC_RM_Norte'),'🗺 PRC RM Sur':mkPrc('PRC_RM_Sur'),
     '🗺 PRC Valparaíso':mkPrc('PRC_Valpara%C3%ADso'),'🗺 PRC Biobío':mkPrc('PRC_Biobio')};
   L.control.layers(null,prcLayers,{collapsed:true,position:'topright'}).addTo(map);
