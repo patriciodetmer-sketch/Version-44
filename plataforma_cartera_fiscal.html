@@ -966,7 +966,7 @@ function quickPop(d){
 // ---- filtros ----
 function filt(){
   const q=state.q.toLowerCase();
-  return D.filter(d=>{
+  const pred=(qq)=> D.filter(d=>{
     const gg=g(d), est=gg.est||'none';
     return (state.reg==='Todas'||d.reg===state.reg)&&(!state.tier||d.tier===state.tier)
       &&(state.capa!=='top'||d.top)&&(state.capa!=='norte'||d.voc)&&(state.capa!=='fav'||G[gid(d)])
@@ -974,11 +974,15 @@ function filt(){
       &&(!state.szMin||d.m2>=state.szMin)&&(!state.szMax||d.m2<=state.szMax)
       &&(!state.ufMin||d.uf>=state.ufMin)&&(!state.ufMax||d.uf<=state.ufMax)
       &&(!state.pot||(state.pot==='alt'?(d.alt||'').startsWith('Alto'):state.pot==='cm'?(d.cm||'').startsWith('Alto'):state.pot==='ind'?(d.ind||'').startsWith('Alto'):state.pot==='talto'?(d.tsc>=75):state.pot==='tpot'?(d.tsc>=45):state.pot==='mar'?/Mar/.test(d.tur||''):state.pot==='termas'?/Terma/.test(d.tur||''):state.pot==='agua'?/Lago|R[ií]o/.test(d.tur||''):state.pot==='sub'?(d.npar>=4):state.pot==='sub12'?(d.npar>=12):[d.alt,d.cm,d.ind].some(v=>(v||'').startsWith('Alto'))))
-      &&(!q||d.com.toLowerCase().includes(q)||d.rol.toLowerCase().includes(q)||d.n.toLowerCase().includes(q)
-        ||(d.pp||'').toLowerCase().includes(q)||(d.voc||'').toLowerCase().includes(q)||(d.z||'').toLowerCase().includes(q)
-        ||(d.zn||'').toLowerCase().includes(q)||(d.up||'').toLowerCase().includes(q)||(d.upr||'').toLowerCase().includes(q)
-        ||(d.mo||'').toLowerCase().includes(q)||(d.inst||'').toLowerCase().includes(q));
-  }).sort((a,b)=>{ const o=state.ord;
+      &&(!qq||d.com.toLowerCase().includes(qq)||d.rol.toLowerCase().includes(qq)||d.n.toLowerCase().includes(qq)
+        ||(d.pp||'').toLowerCase().includes(qq)||(d.voc||'').toLowerCase().includes(qq)||(d.z||'').toLowerCase().includes(qq)
+        ||(d.zn||'').toLowerCase().includes(qq)||(d.up||'').toLowerCase().includes(qq)||(d.upr||'').toLowerCase().includes(qq)
+        ||(d.mo||'').toLowerCase().includes(qq)||(d.inst||'').toLowerCase().includes(qq));
+  });
+  let rows=pred(q);
+  // si el texto buscado es un punto de interés (no calza con predios), mantén las propiedades visibles
+  if(!rows.length && q.length>=2 && typeof POIS!=='undefined' && POIS.some(p=>(p[2]+' '+p[1]).toLowerCase().includes(q))) rows=pred('');
+  return rows.sort((a,b)=>{ const o=state.ord;
     if(o==='uf') return b.uf-a.uf; if(o==='ufa') return a.uf-b.uf;
     if(o==='m2') return b.m2-a.m2; if(o==='m2a') return a.m2-b.m2;
     return b.sc-a.sc; });
