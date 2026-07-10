@@ -768,6 +768,20 @@ body.tableview #gridwrap{display:block}
 .norm .pz{background:var(--accentSoft);color:var(--accentInk);font-weight:700;padding:2px 7px;border-radius:5px;display:inline-block;margin-bottom:5px}
 .norm .pr{margin:4px 0;padding-bottom:4px;border-bottom:1px solid var(--border)}
 .norm .pk{color:var(--muted);font-weight:700}
+.modal{position:fixed;inset:0;z-index:3000;background:rgba(10,20,18,.55);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+.modal.open{display:flex}
+.modal-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);width:min(720px,100%);max-height:calc(100vh - 80px);display:flex;flex-direction:column}
+.modal-h{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.modal-h h2{font-size:17px;margin:0}
+.modal-b{padding:16px 20px;overflow:auto}
+.mp{font-size:13px;line-height:1.55;margin:0 0 14px}
+.mfac{border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:10px;background:var(--surface2)}
+.mfac-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-weight:700;font-size:13.5px;color:var(--accentInk)}
+.mfac-t .mmax{font-weight:600;font-size:11.5px;color:var(--muted);background:var(--accentSoft);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.mfac-d{font-size:12.5px;line-height:1.5;color:var(--muted);margin-top:5px}
+.mtab{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}
+.mtab td{padding:4px 6px;border-bottom:1px solid var(--border)}
+.mtab td.n{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;width:48px;color:var(--accentInk)}
 .chk{display:flex;flex-direction:column;gap:5px}
 .chk label{display:flex;gap:8px;align-items:center;font-size:12.5px;cursor:pointer}
 .chk input{accent-color:var(--accent)}
@@ -787,12 +801,52 @@ footer{padding:7px 18px;border-top:1px solid var(--border);background:var(--surf
 <header>
   <div class="brand"><b>Cartera Fiscal · Gestión</b><span>1.612 predios · 100% georreferenciados</span></div>
   <span class="spacer"></span>
+  <button class="hbtn" id="metbtn">ⓘ Metodología</button>
   <button class="hbtn" id="expx">⬇ Exportar gestión (CSV)</button>
   <button class="hbtn" id="expj">💾 Respaldo (JSON)</button>
   <button class="hbtn" id="impj">📂 Restaurar</button>
   <input type="file" id="impfile" accept=".json" style="display:none"/>
   <button class="hbtn" id="theme" aria-label="Cambiar tema">◐</button>
 </header>
+<div id="metmodal" class="modal" role="dialog" aria-modal="true" aria-label="Metodología">
+ <div class="modal-card">
+  <div class="modal-h"><h2>Metodología del score</h2><button id="metclose" class="dclose" aria-label="Cerrar">×</button></div>
+  <div class="modal-b">
+   <p class="mp">Cada predio recibe un <b>score de 0 a 100</b> que estima la <b>probabilidad de que salga a la venta</b> — no que esté confirmado en el plan ni su rentabilidad. Es la suma de 5 factores:</p>
+
+   <div class="mfac"><div class="mfac-t"><span>1 · Tenencia</span><span class="mmax">hasta 55 pts</span></div>
+    <div class="mfac-d">Factor más pesado: a menor amarre jurídico, más vendible.</div>
+    <table class="mtab"><tbody>
+     <tr><td>Disponible sin acto (“..”) — libre</td><td class="n">55</td></tr>
+     <tr><td>Disponible (inferido)</td><td class="n">46</td></tr>
+     <tr><td>Concesión gratuita corto plazo (recuperable)</td><td class="n">40</td></tr>
+     <tr><td>Concesión gratuita</td><td class="n">35</td></tr>
+     <tr><td>En uso recuperable (inferido)</td><td class="n">32</td></tr>
+     <tr><td>Permiso de ocupación</td><td class="n">24</td></tr>
+     <tr><td>Concesión onerosa</td><td class="n">22</td></tr>
+     <tr><td>Arrendamiento</td><td class="n">20</td></tr>
+     <tr><td>Concesión gratuita largo plazo (difícil)</td><td class="n">14</td></tr>
+    </tbody></table></div>
+
+   <div class="mfac"><div class="mfac-t"><span>2 · Región foco</span><span class="mmax">hasta 15 pts</span></div>
+    <div class="mfac-d">Según regiones priorizadas en el primer paquete: RM 15 · Antofagasta 13 · Biobío 12 · Tarapacá 12 · Valparaíso 9.</div></div>
+
+   <div class="mfac"><div class="mfac-t"><span>3 · Edificabilidad / tamaño</span><span class="mmax">hasta 10 pts</span></div>
+    <div class="mfac-d">Premia tamaños vendibles: 200–20.000 m² → 10 · 20.001–50.000 → 8 · &lt;200 → 7 · &gt;50.000 → 5.</div></div>
+
+   <div class="mfac"><div class="mfac-t"><span>4 · Rol SII asignado</span><span class="mmax">hasta 10 pts</span></div>
+    <div class="mfac-d">Con rol → 10 (listo para transar) · sin rol / no tiene → 4 (requiere regularización).</div></div>
+
+   <div class="mfac"><div class="mfac-t"><span>5 · Confiabilidad del dato</span><span class="mmax">hasta 10 pts</span></div>
+    <div class="mfac-d">Centro (RM/Valpo/Biobío, tenencia oficial) → 10 · Norte (Antofagasta/Tarapacá, inferida por texto) → 5.</div></div>
+
+   <div class="mfac"><div class="mfac-t"><span>Bandas de probabilidad</span><span class="mmax">relativas por ranking</span></div>
+    <div class="mfac-d">No son umbrales fijos sino percentiles dentro de los 1.612: <b>Muy alta</b> = top 15% · <b>Alta</b> = 15–45% · <b>Media</b> = 45–80% · <b>Baja</b> = 20% inferior.</div></div>
+
+   <p class="mp" style="color:var(--faint)"><b>Valorización:</b> referencia UF/m² por comuna (no tasación); avalúo fiscal estimado ≈ 50% del mercado; anclada por 28 valores oficiales del SII. <b>Normativa PRC</b>: MINVU (referencial). Estos datos no son la nómina oficial del plan.</p>
+  </div>
+ </div>
+</div>
 <div class="pipe" id="pipe"></div>
 <div class="bar">
   <label class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -1187,6 +1241,11 @@ document.getElementById('viewbtn').onclick=()=>{
   render();
   if(state.view==='map'&&map) setTimeout(()=>map.invalidateSize(),50);
 };
+const metm=document.getElementById('metmodal');
+document.getElementById('metbtn').onclick=()=>metm.classList.add('open');
+document.getElementById('metclose').onclick=()=>metm.classList.remove('open');
+metm.onclick=e=>{ if(e.target===metm) metm.classList.remove('open'); };
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') metm.classList.remove('open'); });
 document.getElementById('theme').onclick=()=>{const r=document.documentElement;
   const dark=r.getAttribute('data-theme')==='dark'||(!r.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme:dark)').matches);
   r.setAttribute('data-theme',dark?'light':'dark');};
