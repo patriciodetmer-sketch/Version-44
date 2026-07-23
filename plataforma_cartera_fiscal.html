@@ -1058,10 +1058,11 @@ const GCOLS=[
   {k:'siiU',t:'SII UF/m²',n:1,v:(d)=>d.siiU||0,r:(d)=>d.siiU?d.siiU:'—'},
   {k:'mo',t:'Tenencia'},
   {k:'dsii',t:'Destino SII',r:(d)=>d.dsii||'—'},
-  {k:'z',t:'Zona PRC',r:(d)=>(d.z||'')+(d.zn&&d.zn!==d.z?' · '+d.zn:'')||'—'},
-  {k:'up',t:'Uso permitido',wrap:1,r:(d)=>d.up||'—'},
-  {k:'upr',t:'Uso prohibido',wrap:1,r:(d)=>d.upr||'—'},
-  {k:'inst',t:'Instrumento',r:(d)=>d.inst||'—'},
+  {k:'z',t:'Zonificación PRC (zona)',r:(d)=>d.z?('<b>'+d.z+'</b>'+(d.zn&&d.zn!==d.z?' · '+d.zn:'')):'—'},
+  {k:'up',t:'PRC · Uso permitido',wrap:1,r:(d)=>d.up||'—'},
+  {k:'upr',t:'PRC · Uso prohibido',wrap:1,r:(d)=>d.upr||'—'},
+  {k:'inst',t:'PRC · Instrumento',r:(d)=>d.inst||'—'},
+  {k:'fdo',t:'PRC · Publicación D.O.',r:(d)=>d.fdo||'—'},
   {k:'alt',t:'Pot. altura',r:(d)=>d.alt||'—'},
   {k:'cm',t:'Pot. comercial',r:(d)=>d.cm||'—'},
   {k:'ind',t:'Pot. industrial',r:(d)=>d.ind||'—'},
@@ -1079,7 +1080,7 @@ const GCOLS=[
 ];
 function gval(d,c){ if(c.v) return c.v(d); if(c.g) return ENAME[g(d).est||'none']||''; return d[c.k]; }
 // tipo de filtro por columna: sel=desplegable, num=≥ número, txt=contiene texto
-const FTYPE={rk:'num',sc:'num',bd:'sel',est:'sel',n:'txt',com:'sel',reg:'sel',rol:'txt',tier:'sel',m2:'num',uf:'num',usd:'num',avf:'num',siiU:'num',mo:'sel',dsii:'sel',z:'txt',up:'txt',upr:'txt',inst:'sel',alt:'sel',cm:'sel',ind:'sel',pp:'txt',tsc:'num',npar:'num',ru:'sel',pag:'num',da:'num',tit:'txt',adm:'txt',msc:'num',gc:'sel',gu:'txt'};
+const FTYPE={rk:'num',sc:'num',bd:'sel',est:'sel',n:'txt',com:'sel',reg:'sel',rol:'txt',tier:'sel',m2:'num',uf:'num',usd:'num',avf:'num',siiU:'num',mo:'sel',dsii:'sel',z:'txt',up:'txt',upr:'txt',inst:'sel',fdo:'txt',alt:'sel',cm:'sel',ind:'sel',pp:'txt',tsc:'num',npar:'num',ru:'sel',pag:'num',da:'num',tit:'txt',adm:'txt',msc:'num',gc:'sel',gu:'txt'};
 const gesc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 const GCAP=2000;
 function gDistinct(rows,c){ const s=new Set(); rows.forEach(d=>{const v=gval(d,c); if(v!=null&&v!=='') s.add(String(v));}); return [...s].sort((a,b)=>a.localeCompare(b,'es',{numeric:true})); }
