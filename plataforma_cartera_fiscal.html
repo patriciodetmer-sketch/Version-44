@@ -960,7 +960,8 @@ function findPOI(q){ q=(q||'').trim().toLowerCase(); if(q.length<2) return;
   const idx=POIS.findIndex(p=>(p[2]+' '+p[1]).toLowerCase().includes(q));
   if(idx>=0){ if(!map.hasLayer(poiLayer)) poiLayer.addTo(map);
     const m=poiMarkers[idx]; if(m){ map.flyTo(m.getLatLng(),Math.max(map.getZoom(),9),{duration:.6}); m.openPopup(); } } }
-try{ L.control.layers(null,{'📍 Puntos de interés':poiLayer},{collapsed:true,position:'topright'}).addTo(map); }catch(e){}
+poiLayer.addTo(map);
+try{ L.control.layers(null,{'📍 Puntos de interés (faenas, puertos, empresas…)':poiLayer},{collapsed:false,position:'topright'}).addTo(map); }catch(e){}
 const layer=L.layerGroup().addTo(map); const markers={};
 const MBCOL={'Muy alta':'#C25E00','Alta':'#E8890C','Media':'#F2B705','Baja':'#F6DCA0'};
 const GCCOL={'Estatal':'#2456A6','Público no estatal':'#2E9E5B','Privado':'#B0752A','Sin uso / s/i':'#9AA6B2'};
