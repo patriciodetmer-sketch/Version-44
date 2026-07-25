@@ -921,8 +921,8 @@ const map=L.map('map',{preferCanvas:true}).setView([-30.5,-70.9],4.6);
 const CANVAS=L.canvas({padding:.35});
 let tf=0; map.options.zoomSnap=.5;
 const tiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'© OSM © CARTO'});
-tiles.on('tileerror',()=>{ if(++tf===3){ document.getElementById('tilenote').style.display='block';
-  const sb=document.getElementById('satbtn'); if(sb){ sb.disabled=true; sb.style.opacity=.45; sb.style.cursor='not-allowed'; sb.title='El satélite (y el mapa de calles) requieren abrir el archivo HTML local — no cargan en el link web.'; } } });
+let tileok=false; tiles.on('tileload',()=>{tileok=true;});
+tiles.on('tileerror',()=>{ if(++tf>=5 && !tileok) document.getElementById('tilenote').style.display='block'; });
 tiles.addTo(map);
 // capa de tierra de respaldo: bajo los tiles (zIndex 150). Con tiles se oculta; sin tiles (link web) muestra el contorno de Chile.
 try{ map.createPane('land'); map.getPane('land').style.zIndex=150;
