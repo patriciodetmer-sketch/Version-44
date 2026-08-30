@@ -1,0 +1,687 @@
+<title>Comprar, Automatizar, Vender</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#F3F4F1;
+    --surface:#FFFFFF;
+    --surface-2:#EAECE7;
+    --ink:#171C1A;
+    --ink-soft:#3B4441;
+    --muted:#5E6763;
+    --rule:#D7DBD4;
+    --rule-soft:#E5E8E2;
+    --accent:#0F5A4E;
+    --accent-soft:#DDEAE5;
+    --warn:#A6572C;
+    --warn-soft:#F2E4DA;
+    --crit:#8E2F2F;
+    --crit-soft:#F3DEDE;
+    --ok:#3F6B2E;
+
+    --max:74ch;
+    --wide:1080px;
+    --f-display:"Newsreader",Georgia,"Times New Roman",serif;
+    --f-body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+    --f-mono:"IBM Plex Mono","SF Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#111614;
+      --surface:#191F1C;
+      --surface-2:#212825;
+      --ink:#E7EBE6;
+      --ink-soft:#C2CAC5;
+      --muted:#8D9793;
+      --rule:#2C3532;
+      --rule-soft:#232A27;
+      --accent:#5DC0A7;
+      --accent-soft:#16302A;
+      --warn:#DB9260;
+      --warn-soft:#33241A;
+      --crit:#E08585;
+      --crit-soft:#331E1E;
+      --ok:#8DBE76;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#111614;
+    --surface:#191F1C;
+    --surface-2:#212825;
+    --ink:#E7EBE6;
+    --ink-soft:#C2CAC5;
+    --muted:#8D9793;
+    --rule:#2C3532;
+    --rule-soft:#232A27;
+    --accent:#5DC0A7;
+    --accent-soft:#16302A;
+    --warn:#DB9260;
+    --warn-soft:#33241A;
+    --crit:#E08585;
+    --crit-soft:#331E1E;
+    --ok:#8DBE76;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--f-body);
+    font-size:16px;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:var(--wide);margin:0 auto;padding:0 24px 96px}
+  .col{max-width:var(--max)}
+
+  /* ---------- masthead ---------- */
+  .masthead{padding:56px 0 28px;border-bottom:2px solid var(--ink)}
+  .kicker{
+    font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--accent);margin:0 0 18px
+  }
+  h1{
+    font-family:var(--f-display);font-weight:600;
+    font-size:clamp(38px,6.2vw,64px);line-height:1.02;letter-spacing:-.02em;
+    margin:0;text-wrap:balance;
+  }
+  h1 em{font-style:italic;color:var(--accent);font-weight:400}
+  .standfirst{
+    font-family:var(--f-display);font-size:clamp(18px,2.3vw,22px);
+    line-height:1.5;color:var(--ink-soft);margin:20px 0 0;max-width:60ch;
+  }
+  .meta{
+    display:flex;flex-wrap:wrap;gap:8px 28px;margin:28px 0 0;
+    font-family:var(--f-mono);font-size:11.5px;color:var(--muted);
+    letter-spacing:.03em;
+  }
+  .meta b{color:var(--ink-soft);font-weight:500}
+
+  /* ---------- sections ---------- */
+  section{padding-top:56px}
+  .sec-head{display:flex;align-items:baseline;gap:16px;border-top:1px solid var(--rule);padding-top:14px;margin-bottom:26px}
+  .sec-num{font-family:var(--f-mono);font-size:12px;color:var(--accent);letter-spacing:.08em;padding-top:6px}
+  h2{
+    font-family:var(--f-display);font-weight:600;font-size:clamp(25px,3.4vw,33px);
+    line-height:1.14;letter-spacing:-.015em;margin:0;text-wrap:balance;
+  }
+  h3{
+    font-family:var(--f-body);font-weight:600;font-size:16px;letter-spacing:-.005em;
+    margin:34px 0 10px;
+  }
+  h4{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:500}
+  p{margin:0 0 16px;max-width:var(--max)}
+  a{color:var(--accent);text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+  strong{font-weight:600}
+  em.term{font-style:normal;font-family:var(--f-mono);font-size:.9em;background:var(--surface-2);padding:1px 5px;border-radius:3px}
+
+  ul.plain{margin:0 0 16px;padding-left:0;list-style:none;max-width:var(--max);display:flex;flex-direction:column;gap:10px}
+  ul.plain > li{padding-left:22px;position:relative}
+  ul.plain > li::before{content:"";position:absolute;left:2px;top:.68em;width:7px;height:1px;background:var(--accent)}
+
+  /* ---------- executive box ---------- */
+  .verdict{
+    background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--accent);
+    padding:26px 28px;margin:34px 0 0;
+  }
+  .verdict h4{color:var(--accent)}
+  .verdict p:last-child{margin-bottom:0}
+  .verdict .lead{font-family:var(--f-display);font-size:20px;line-height:1.45;margin-bottom:14px}
+
+  /* ---------- driver grid ---------- */
+  .grid{display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft);margin:8px 0 8px}
+  .grid.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+  .cell{background:var(--surface);padding:20px 22px}
+  .cell .n{font-family:var(--f-mono);font-size:11px;color:var(--accent);letter-spacing:.1em;display:block;margin-bottom:8px}
+  .cell h5{margin:0 0 8px;font-size:15px;font-weight:600;font-family:var(--f-body)}
+  .cell p{font-size:14.5px;color:var(--ink-soft);margin:0}
+
+  /* ---------- tables ---------- */
+  .tw{overflow-x:auto;margin:20px 0 8px;border:1px solid var(--rule)}
+  table{border-collapse:collapse;width:100%;background:var(--surface);font-size:14px}
+  caption{
+    caption-side:bottom;text-align:left;font-size:12.5px;color:var(--muted);
+    padding:10px 2px 0;font-family:var(--f-body)
+  }
+  th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+  thead th{
+    font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);font-weight:500;background:var(--surface-2);border-bottom:1px solid var(--rule);
+    white-space:nowrap
+  }
+  tbody tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  td.sector{font-weight:600;min-width:190px}
+  tr.total td{background:var(--surface-2);font-weight:600;border-top:1px solid var(--rule)}
+  .dots{font-family:var(--f-mono);letter-spacing:.09em;font-size:12.5px;color:var(--accent);white-space:nowrap}
+  .dots span{color:var(--rule)}
+  .score{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:600}
+
+  .rank{
+    font-family:var(--f-mono);font-size:11px;color:var(--muted);
+    width:2.2em;text-align:right;padding-right:0
+  }
+
+  /* ---------- chips ---------- */
+  .chip{
+    display:inline-block;font-family:var(--f-mono);font-size:10px;letter-spacing:.09em;
+    text-transform:uppercase;padding:3px 8px;border-radius:2px;white-space:nowrap;font-weight:500
+  }
+  .chip.ok{background:var(--accent-soft);color:var(--accent)}
+  .chip.warn{background:var(--warn-soft);color:var(--warn)}
+  .chip.crit{background:var(--crit-soft);color:var(--crit)}
+
+  /* ---------- ficha ---------- */
+  .ficha{background:var(--surface);border:1px solid var(--rule);padding:24px 26px;margin:18px 0}
+  .ficha header{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin-bottom:14px}
+  .ficha h3{margin:0;font-family:var(--f-display);font-size:22px;font-weight:600;letter-spacing:-.01em}
+  .ficha .why{font-family:var(--f-mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
+  .ficha dl{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;margin:14px 0 0;font-size:14.5px}
+  .ficha dt{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-top:4px}
+  .ficha dd{margin:0;color:var(--ink-soft)}
+
+  /* ---------- timeline ---------- */
+  .tl{list-style:none;margin:20px 0 0;padding:0;border-left:1px solid var(--rule);max-width:var(--max)}
+  .tl li{position:relative;padding:0 0 26px 26px}
+  .tl li::before{
+    content:"";position:absolute;left:-4.5px;top:9px;width:8px;height:8px;border-radius:50%;
+    background:var(--ground);border:1.5px solid var(--accent)
+  }
+  .tl .when{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:4px}
+  .tl h5{margin:0 0 6px;font-size:15.5px;font-weight:600}
+  .tl p{font-size:14.5px;color:var(--ink-soft);margin:0}
+
+  /* ---------- callout ---------- */
+  .note{
+    border-left:2px solid var(--warn);background:var(--warn-soft);
+    padding:16px 20px;margin:22px 0;max-width:var(--max);font-size:14.5px
+  }
+  .note p{margin:0;color:var(--ink)}
+  .note p + p{margin-top:10px}
+  .note strong{color:var(--warn)}
+
+  /* ---------- sources ---------- */
+  .sources{font-size:13.5px;color:var(--muted);columns:2;column-gap:40px;max-width:var(--wide)}
+  .sources li{break-inside:avoid;margin-bottom:8px}
+  @media (max-width:720px){
+    .sources{columns:1}
+    .page{padding:0 18px 72px}
+    .sec-head{gap:12px}
+  }
+  footer.foot{margin-top:64px;border-top:1px solid var(--rule);padding-top:20px;font-size:13px;color:var(--muted)}
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <p class="kicker">Memo de tesis · Chile · agosto 2026</p>
+    <h1>Comprar, automatizar,<br><em>vender</em></h1>
+    <p class="standfirst">Dónde encontrar una pyme chilena en marcha que valga la pena comprar, qué le hace realmente la IA a su margen, y cuánto vale eso cuando la vendes cuatro años después.</p>
+    <div class="meta">
+      <span><b>Horizonte</b> 4–5 años</span>
+      <span><b>Ticket</b> CLP 1.200–2.500 MM</span>
+      <span><b>Equity propio</b> desde CLP 400 MM</span>
+      <span><b>UF</b> $40.874 · <b>USD</b> $912</span>
+    </div>
+  </header>
+
+  <section id="resumen">
+    <div class="sec-head"><span class="sec-num">00</span><h2>Resumen ejecutivo</h2></div>
+    <div class="col">
+      <p>La estrategia que describes tiene nombre en el mercado: <strong>AI-enabled roll-up</strong>, o su versión de un solo activo, el <em class="term">search fund</em>. La versión honesta de la tesis es esta: no ganas plata por instalar IA. Ganas plata por <strong>comprar barato un negocio aburrido con ingreso recurrente</strong>, y la IA es lo que te permite subir el margen sin contratar y justificar un múltiplo mayor a la salida. Si el negocio comprado es malo, la IA no lo salva.</p>
+      <p>Chile tiene tres condiciones que hacen esto más viable que en casi cualquier otro mercado de la región, y una que lo hace más riesgoso. Las cuatro están en la sección 01.</p>
+    </div>
+
+    <div class="verdict col">
+      <h4>Veredicto</h4>
+      <p class="lead">Sí, la tesis es válida en Chile. El sector con mejor relación retorno/dificultad hoy es <strong>administración de edificios y condominios</strong>, seguido de <strong>BPO contable y de remuneraciones</strong>.</p>
+      <p>Ambos son 100% ingreso recurrente, están atomizados en cientos de operadores unipersonales, tienen dueños en edad de salida, y —el punto clave chileno— <strong>su materia prima ya está digitalizada y estructurada por el SII</strong>. Eso hace que automatizar cueste una fracción de lo que cuesta en mercados donde todo sigue llegando en PDF.</p>
+      <p>El riesgo dominante no es tecnológico ni de precio: es que compres un negocio que <em>era</em> su dueño. Ese es el error que mata la mayoría de estas operaciones, y se detecta en due diligence si sabes qué mirar (sección 03).</p>
+    </div>
+  </section>
+
+  <section id="porque">
+    <div class="sec-head"><span class="sec-num">01</span><h2>Por qué esta tesis funciona en Chile, y ahora</h2></div>
+    <div class="col">
+      <p>No es una tesis genérica trasplantada desde Estados Unidos. Hay cuatro fuerzas locales operando al mismo tiempo, y tres empujan a favor.</p>
+    </div>
+
+    <div class="grid g2">
+      <div class="cell">
+        <span class="n">Viento a favor</span>
+        <h5>Cerca de la mitad de los dueños de pyme supera los 59 años</h5>
+        <p>Miles de empresas rentables enfrentan sucesión o cierre en los próximos años, y el 68% de las empresas familiares no tiene plan de sucesión. Eso significa vendedores motivados, no procesos competitivos con cinco fondos pujando.</p>
+      </div>
+      <div class="cell">
+        <span class="n">Viento a favor</span>
+        <h5>El costo laboral sube por ley, no por mercado</h5>
+        <p>En abril de 2026 la jornada bajó a 42 horas camino a 40 en 2028, sin poder reducir remuneraciones, y el sueldo mínimo quedó en $553.553. Cada hora que automatizas vale más cada año, y el dueño tradicional que no puede absorber ese costo es exactamente quien te vende.</p>
+      </div>
+      <div class="cell">
+        <span class="n">Viento a favor · ventaja chilena</span>
+        <h5>El SII ya estructuró los datos por ti</h5>
+        <p>Factura y boleta electrónica obligatorias significan que el insumo administrativo chileno llega en XML, no en papel escaneado. Automatizar conciliación, clasificación, cobranza y nómina en Chile es un problema de reglas y modelos sobre datos limpios, no un proyecto de OCR. Este es el punto que la mayoría no ve.</p>
+      </div>
+      <div class="cell">
+        <span class="n">Viento en contra</span>
+        <h5>Solo 3,6% de las empresas chilenas escala IA con retorno medible</h5>
+        <p>El 88% "usa IA" y el 30% la aplica en algún proceso, pero casi nadie la convierte en margen. Es una mala noticia para el promedio y una buena para ti: significa que la ventaja es de ejecución, no de acceso a la tecnología, y que nadie te está pagando de más por el activo todavía.</p>
+      </div>
+    </div>
+
+    <div class="note col">
+      <p><strong>Y un reloj corriendo.</strong> La Ley 21.719 de datos personales entra en plena vigencia el <strong>1 de diciembre de 2026</strong> —en tres meses— con multas de hasta 20.000 UTM o 4% de los ingresos en reincidencia, y una Agencia con facultades para investigar de oficio. Cualquier target que trate datos de personas es hoy un pasivo contingente. Eso es un riesgo que debes revisar en due diligence, y también tu mejor argumento para negociar precio.</p>
+    </div>
+  </section>
+
+  <section id="sectores">
+    <div class="sec-head"><span class="sec-num">02</span><h2>Dónde comprar: los siete candidatos, puntuados</h2></div>
+    <div class="col">
+      <p>Puntué cada sector de 1 a 5 en las seis dimensiones que determinan si esta jugada funciona. <strong>Palanca IA</strong> mide cuánto del costo operativo es tarea repetitiva sobre datos estructurados. <strong>Regulación</strong> está invertido: 5 significa poco riesgo regulatorio. <strong>Salida</strong> mide qué tan probable es que exista un comprador dispuesto a pagar múltiplo alto en 2030.</p>
+    </div>
+
+    <div class="tw">
+      <table>
+        <caption>Puntuación 1–5 por dimensión, máximo 30. Elaboración propia sobre las fuentes citadas al final.</caption>
+        <thead>
+          <tr>
+            <th class="rank">#</th>
+            <th>Sector</th>
+            <th class="num">Frag.</th>
+            <th class="num">Palanca IA</th>
+            <th class="num">Recurr.</th>
+            <th class="num">Oferta</th>
+            <th class="num">Regul.</th>
+            <th class="num">Salida</th>
+            <th class="num">Total</th>
+            <th>Veredicto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="rank">1</td><td class="sector">Administración de edificios y condominios</td>
+            <td class="num">5</td><td class="num">4</td><td class="num">5</td><td class="num">5</td><td class="num">4</td><td class="num">4</td>
+            <td class="num score">27</td><td><span class="chip ok">Objetivo primario</span></td>
+          </tr>
+          <tr>
+            <td class="rank">2</td><td class="sector">BPO contable y de remuneraciones</td>
+            <td class="num">5</td><td class="num">5</td><td class="num">5</td><td class="num">4</td><td class="num">3</td><td class="num">4</td>
+            <td class="num score">26</td><td><span class="chip ok">Objetivo primario</span></td>
+          </tr>
+          <tr>
+            <td class="rank">3</td><td class="sector">Corredoras de seguros pequeñas</td>
+            <td class="num">5</td><td class="num">4</td><td class="num">5</td><td class="num">3</td><td class="num">3</td><td class="num">5</td>
+            <td class="num score">25</td><td><span class="chip ok">Alternativa fuerte</span></td>
+          </tr>
+          <tr>
+            <td class="rank">4</td><td class="sector">Back-office de salud (facturación, agenda, bonos)</td>
+            <td class="num">4</td><td class="num">5</td><td class="num">4</td><td class="num">3</td><td class="num">2</td><td class="num">5</td>
+            <td class="num score">23</td><td><span class="chip warn">Alto retorno, alto riesgo de datos</span></td>
+          </tr>
+          <tr>
+            <td class="rank">5</td><td class="sector">Seguridad privada y servicios generales</td>
+            <td class="num">5</td><td class="num">2</td><td class="num">5</td><td class="num">5</td><td class="num">2</td><td class="num">3</td>
+            <td class="num score">22</td><td><span class="chip warn">La IA reemplaza poco; es capex</span></td>
+          </tr>
+          <tr>
+            <td class="rank">6</td><td class="sector">Contact center y cobranza B2B</td>
+            <td class="num">3</td><td class="num">5</td><td class="num">4</td><td class="num">3</td><td class="num">3</td><td class="num">3</td>
+            <td class="num score">21</td><td><span class="chip warn">El cliente te exige el ahorro</span></td>
+          </tr>
+          <tr>
+            <td class="rank">7</td><td class="sector">Agencias de marketing y software a pedido</td>
+            <td class="num">5</td><td class="num">2</td><td class="num">2</td><td class="num">4</td><td class="num">4</td><td class="num">2</td>
+            <td class="num score">19</td><td><span class="chip crit">Evitar</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col">
+      <h3>Por qué el último lugar importa tanto como el primero</h3>
+      <p>Las agencias y las software factories parecen el match obvio —"son negocios de conocimiento, la IA los potencia"— y son la trampa. Su ingreso es por proyecto, no recurrente, y la IA <strong>comprime el precio que pueden cobrar más rápido de lo que baja su costo</strong>. Compras un negocio cuyo producto se está abaratando. El mismo razonamiento vale, en menor grado, para el contact center: si automatizas el 40% de los contactos de un contrato licitado, tu cliente va a querer el ahorro en la próxima licitación, no tú.</p>
+      <p>La regla que se desprende: <strong>busca negocios donde el cliente compra un resultado, no horas.</strong> Un gasto común administrado, una nómina emitida a tiempo, una póliza renovada. Ahí el ahorro de costo se queda en tu EBITDA.</p>
+    </div>
+
+    <div class="ficha">
+      <header>
+        <h3>1. Administración de edificios y condominios</h3>
+        <span class="why">El equivalente chileno de la jugada que mejor ha funcionado afuera</span>
+      </header>
+      <p>Es el análogo directo de Long Lake, el caso más exitoso de esta estrategia a nivel global: administración de comunidades, incubada por un fondo, más de 30 empresas compradas desde 2023 y US$100 millones de EBITDA en menos de dos años. En Chile el mercado está atomizado entre administradores unipersonales y empresas de cinco a treinta personas.</p>
+      <dl>
+        <dt>Ingreso</dt><dd>100% recurrente y mensual, cobrado dentro del gasto común. Morosidad del cliente final, no tuya.</dd>
+        <dt>Qué automatizas</dt><dd>Conciliación bancaria de la comunidad, emisión y cobranza de gastos comunes, respuesta a copropietarios (el 70% del tiempo de un administrador es responder lo mismo), coordinación de proveedores, actas, rendiciones, informes mensuales.</dd>
+        <dt>Viento regulatorio</dt><dd>La Ley 21.442 obliga a los administradores a inscribirse en el Registro Nacional del Minvu desde septiembre de 2025. Eso expulsa al informal y empuja a la comunidad hacia el operador profesional: exactamente tú.</dd>
+        <dt>Consolidación</dt><dd>Es el sector donde el <em class="term">bolt-on</em> es más fácil: comprar una cartera de 20 comunidades es comprar contratos, y el costo marginal de administrarlas en tu plataforma tiende a cero.</dd>
+        <dt>Contras reales</dt><dd>Ticket bajo por comunidad, sensibilidad al precio, y el contrato lo renueva una asamblea que puede cambiar de opinión. Se compensa con volumen y con NPS medido, no con discurso.</dd>
+      </dl>
+    </div>
+
+    <div class="ficha">
+      <header>
+        <h3>2. BPO contable y de remuneraciones</h3>
+        <span class="why">Donde la ventaja de datos chilena es máxima</span>
+      </header>
+      <p>Es el sector donde la IA muerde más fuerte y donde ya está pasando afuera: en Estados Unidos los fondos están comprando firmas contables en serie —Crete/Current llegó a más de US$300 millones de ingresos con 30+ firmas. La diferencia chilena es que aquí el insumo ya viene estructurado del SII, así que no compras el problema de digitalizar, compras directamente el de automatizar.</p>
+      <dl>
+        <dt>Ingreso</dt><dd>Fee mensual por cliente, contratos que duran años, churn bajo porque cambiar de contador es doloroso.</dd>
+        <dt>Qué automatizas</dt><dd>Clasificación y contabilización de DTE, conciliación, preparación de F29, cálculo y emisión de nómina, cumplimiento previsional, y sobre todo la atención al cliente pyme, que hoy consume al contador senior.</dd>
+        <dt>Efecto margen</dt><dd>El apalancamiento real está en subir clientes por contador de ~35 a ~70 sin perder calidad. Eso es duplicar el ingreso por cabeza, no recortar 10% de costos.</dd>
+        <dt>Contras reales</dt><dd>Compites con software (Nubox, Defontana y similares) que va subiendo hacia el servicio. Tu defensa es el servicio con responsabilidad profesional, que el software no da. Y ojo: la Ley 21.719 pega fuerte aquí, porque tratas datos de trabajadores de terceros.</dd>
+      </dl>
+    </div>
+
+    <div class="ficha">
+      <header>
+        <h3>3. Corredoras de seguros pequeñas</h3>
+        <span class="why">La mejor salida de las tres</span>
+      </header>
+      <p>Comisión recurrente sobre prima, renovación anual casi automática, dueños mayores, y un comprador estratégico siempre presente: los consolidadores de corretaje compran cartera de forma sistemática y pagan bien. Regulación CMF existente pero liviana para el tamaño.</p>
+      <dl>
+        <dt>Qué automatizas</dt><dd>Cotización multi-aseguradora, gestión de renovaciones (el mayor punto de fuga de comisión), asistencia en siniestros, cross-selling sobre la cartera existente.</dd>
+        <dt>Por qué no es el #1</dt><dd>Hay menos targets disponibles y los dueños suelen tener expectativas de precio más formadas, porque ya recibieron ofertas. El descuento por "no sabe lo que tiene" es menor.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section id="filtro">
+    <div class="sec-head"><span class="sec-num">03</span><h2>El filtro: diez criterios y sus umbrales</h2></div>
+    <div class="col">
+      <p>Este es el tamiz. Un target que falla en los tres primeros criterios se descarta sin reunión, por atractivo que parezca el precio.</p>
+    </div>
+
+    <div class="tw">
+      <table>
+        <thead>
+          <tr><th class="rank">#</th><th>Criterio</th><th>Umbral</th><th>Cómo lo verificas</th><th>Peso</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="rank">1</td><td class="sector">El negocio no es el dueño</td><td>Top 10 clientes conocen a alguien más que al dueño</td><td>Llamar clientes en due diligence confirmatorio; revisar quién firma las propuestas</td><td><span class="chip crit">Eliminatorio</span></td></tr>
+          <tr><td class="rank">2</td><td class="sector">Ingreso recurrente</td><td>&gt;70% del ingreso es contractual y mensual</td><td>Libro de ventas de 36 meses, cohortes de clientes</td><td><span class="chip crit">Eliminatorio</span></td></tr>
+          <tr><td class="rank">3</td><td class="sector">Concentración de clientes</td><td>Ningún cliente &gt;20% de ventas; top 5 &lt;45%</td><td>Libro de ventas por RUT</td><td><span class="chip crit">Eliminatorio</span></td></tr>
+          <tr><td class="rank">4</td><td class="sector">Tamaño</td><td>EBITDA CLP 250–800 MM (UF 6.000–20.000)</td><td>EERR ajustado por gastos del dueño</td><td><span class="chip warn">Alto</span></td></tr>
+          <tr><td class="rank">5</td><td class="sector">Intensidad de trabajo automatizable</td><td>Costo de personal operativo &gt;35% de ventas</td><td>Nómina cruzada con descripción de tareas reales, no cargos</td><td><span class="chip warn">Alto</span></td></tr>
+          <tr><td class="rank">6</td><td class="sector">Churn</td><td>&lt;10% anual de clientes</td><td>Facturación por cliente año contra año</td><td><span class="chip warn">Alto</span></td></tr>
+          <tr><td class="rank">7</td><td class="sector">Capital de trabajo y capex</td><td>Capex mantención &lt;3% de ventas</td><td>Balance, activo fijo, historial de inversión</td><td><span class="chip ok">Medio</span></td></tr>
+          <tr><td class="rank">8</td><td class="sector">Datos utilizables</td><td>Operación ya en un sistema, no en Excel del asistente</td><td>Ver el sistema en vivo, pedir un export</td><td><span class="chip ok">Medio</span></td></tr>
+          <tr><td class="rank">9</td><td class="sector">Limpieza tributaria y laboral</td><td>Sin juicios laborales activos, sin fiscalización SII abierta</td><td>Certificado de cumplimiento laboral y previsional (F30-1), boletín concursal, Poder Judicial, carpeta tributaria</td><td><span class="chip warn">Alto</span></td></tr>
+          <tr><td class="rank">10</td><td class="sector">Vendedor dispuesto a financiar</td><td>Acepta diferir ≥25% del precio a 3–4 años</td><td>Se pregunta en la primera reunión. Un "no" rotundo dice algo del negocio</td><td><span class="chip warn">Alto</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note col">
+      <p><strong>El criterio 1 es el que quiebra la tesis.</strong> Una pyme chilena de servicios de 30 personas donde el dueño vende, cotiza, cobra y resuelve, es una agenda de contactos con planilla de sueldos. Compras eso, el dueño se va a los 12 meses de transición, y el EBITDA cae 40% justo cuando estás pagando deuda. Si el negocio pasa todos los filtros menos este, la respuesta no es "le pongo un gerente": es no comprar, o pagar 3x en vez de 4,5x con la mitad del precio en <em class="term">earn-out</em>.</p>
+    </div>
+  </section>
+
+  <section id="numeros">
+    <div class="sec-head"><span class="sec-num">04</span><h2>La aritmética: de dónde sale realmente el retorno</h2></div>
+    <div class="col">
+      <p>Caso base sobre un target típico del sector 1 o 2. Cifras en millones de pesos. El punto de este ejercicio no es el número final, es ver <strong>qué proporción del retorno viene de cada palanca</strong>: entrar barato, subir EBITDA, y salir a múltiplo mayor.</p>
+    </div>
+
+    <h4>Entrada · año 0</h4>
+    <div class="tw">
+      <table>
+        <thead><tr><th>Concepto</th><th class="num">CLP MM</th><th class="num">%</th><th>Nota</th></tr></thead>
+        <tbody>
+          <tr><td>Ventas</td><td class="num">2.400</td><td class="num">—</td><td>≈ UF 58.700, empresa mediana según SII</td></tr>
+          <tr><td>EBITDA ajustado</td><td class="num">380</td><td class="num">15,8%</td><td>Normalizado por sueldo de mercado del dueño</td></tr>
+          <tr><td>Múltiplo de entrada</td><td class="num">4,5×</td><td class="num">—</td><td>Rango de mercado para pyme consolidada: 4×–7×</td></tr>
+          <tr class="total"><td>Precio empresa</td><td class="num">1.710</td><td class="num">100%</td><td>≈ UF 41.800 · ≈ US$1,88 MM</td></tr>
+          <tr><td>· Contado al cierre (equity)</td><td class="num">700</td><td class="num">41%</td><td>Tu aporte + inversionistas</td></tr>
+          <tr><td>· Deuda bancaria 5 años</td><td class="num">510</td><td class="num">30%</td><td>Con garantías reales; tasa ~10% nominal</td></tr>
+          <tr><td>· Crédito del vendedor 4 años</td><td class="num">400</td><td class="num">23%</td><td>La pieza clave: alinea al vendedor con la transición</td></tr>
+          <tr><td>· Earn-out 24 meses</td><td class="num">100</td><td class="num">6%</td><td>Pagado con caja del negocio, sujeto a EBITDA</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4 style="margin-top:34px">Construcción de EBITDA · años 1 a 4</h4>
+    <div class="tw">
+      <table>
+        <caption>Supuesto de tecnología: CLP 35 MM anuales entre licencias, tokens e ingeniería. Está descontado del ahorro.</caption>
+        <thead><tr><th>Palanca</th><th class="num">Δ EBITDA</th><th>De dónde sale</th></tr></thead>
+        <tbody>
+          <tr><td>EBITDA base año 0</td><td class="num">380</td><td>—</td></tr>
+          <tr><td>Automatización de tareas repetitivas</td><td class="num">+130</td><td>Costo de personal operativo ≈ 1.080; se automatiza ~25% de las horas repetitivas y se captura ~15% del costo laboral, neto de tecnología. Sin despidos: rotación natural más congelamiento de reemplazos</td></tr>
+          <tr><td>Crecimiento comercial</td><td class="num">+215</td><td>8% anual de ventas nuevas atendidas con la misma dotación, a margen incremental 25%</td></tr>
+          <tr><td>Precio y mix</td><td class="num">—</td><td>No se asume alza de precio. Si la hay, es upside</td></tr>
+          <tr class="total"><td>EBITDA año 4</td><td class="num">725</td><td>Margen 22,2% sobre ventas de 3.265. Multiplicador 1,9× en cuatro años</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4 style="margin-top:34px">Salida · tres escenarios</h4>
+    <div class="tw">
+      <table>
+        <caption>Retorno sobre el equity de CLP 700 MM. Se asume que el flujo del negocio amortizó la deuda y pagó el earn-out.</caption>
+        <thead>
+          <tr><th>Escenario</th><th class="num">EBITDA a4</th><th class="num">Múltiplo</th><th class="num">Valor</th><th class="num">Deuda neta</th><th class="num">Equity</th><th class="num">MOIC</th><th class="num">TIR aprox.</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="sector">Base — se ejecuta el plan</td><td class="num">725</td><td class="num">6,5×</td><td class="num">4.713</td><td class="num">120</td><td class="num">4.593</td><td class="num score">6,6×</td><td class="num">~60%</td></tr>
+          <tr><td class="sector">Conservador — la IA rinde la mitad</td><td class="num">500</td><td class="num">5,0×</td><td class="num">2.500</td><td class="num">200</td><td class="num">2.300</td><td class="num score">3,3×</td><td class="num">~35%</td></tr>
+          <tr><td class="sector">Malo — se va el dueño y con él tres clientes</td><td class="num">300</td><td class="num">4,0×</td><td class="num">1.200</td><td class="num">330</td><td class="num">870</td><td class="num score">1,2×</td><td class="num">~5%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col">
+      <h3>Lo que este cuadro dice de verdad</h3>
+      <ul class="plain">
+        <li><strong>El múltiplo de salida hace la mitad del trabajo.</strong> Pasar de 4,5× a 6,5× no se logra diciendo "usamos IA". Se logra con ingreso recurrente sobre 60%, un equipo que opera sin ti, y un ahorro documentado y auditable. Las firmas de servicios con más de 30% de ingreso tipo software cotizan 1–2× EBITDA por sobre sus pares.</li>
+        <li><strong>El escenario malo no te arruina, pero te quema cuatro años.</strong> Con 1,2× de MOIC hubieras hecho más plata en un depósito a plazo. Por eso el precio de entrada y la estructura importan más que el plan de IA.</li>
+        <li><strong>No necesitas los CLP 700 MM.</strong> El modelo <em class="term">search fund</em> existe precisamente para esto: inversionistas financian la búsqueda y la compra, tú operas y recibes típicamente 20–30% del equity con <em class="term">vesting</em> por tiempo, cierre y retorno. En Chile ya hay varios operando, con foco en empresas de hasta US$50 MM.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="estructura">
+    <div class="sec-head"><span class="sec-num">05</span><h2>Cómo se estructura la compra en Chile</h2></div>
+
+    <div class="col">
+      <h3>Acciones o activos</h3>
+      <p>Comprar acciones o derechos sociales es más limpio operativamente y suele ser más eficiente en precio, pero <strong>heredas todo el historial tributario</strong>: el SII puede fiscalizar de tres a seis años hacia atrás, con multas y recargos. Comprar activos aísla contingencias tributarias, pero es más caro fiscalmente y obliga a renovar contratos, permisos y relaciones uno por uno.</p>
+      <p>En pymes de servicios se hace casi siempre compra de acciones, con tres protecciones: declaraciones y garantías amplias del vendedor, <strong>retención de precio en escrow de 15–20% por 18–24 meses</strong>, y un límite de responsabilidad que no baje del monto retenido.</p>
+      <div class="note">
+        <p><strong>Cuidado con el atajo de comprar activos para "limpiar" lo laboral.</strong> En Chile, si hay continuidad del giro y de los trabajadores, las obligaciones laborales y previsionales siguen a la empresa por el artículo 4 del Código del Trabajo. Comprar activos no borra ese pasivo. Se cubre con auditoría de F30-1, finiquitos y cotizaciones, y con retención de precio.</p>
+      </div>
+
+      <h3>Cómo se financia realmente</h3>
+      <p>La banca chilena no hace <em class="term">leveraged buyout</em> de pymes. No existe un producto "crédito para comprar una empresa" a plazo largo y sin garantía distinta del propio negocio. Lo que sí existe, y es lo que se usa:</p>
+      <ul class="plain">
+        <li><strong>Crédito bancario con garantía real</strong> —hipoteca, prenda o aval personal— a 5 años. Es tu deuda, no la del target, y el banco mira tu patrimonio.</li>
+        <li><strong>Crédito del vendedor</strong>, la pieza más importante en Chile: el vendedor difiere 20–40% del precio a 3–5 años. Baja tu necesidad de capital, y sobre todo <strong>lo deja con la piel en el juego durante la transición</strong>. Un vendedor que se niega a diferir un peso te está diciendo algo.</li>
+        <li><strong>Earn-out</strong> a 12–24 meses ligado a EBITDA o retención de clientes. Traslada al vendedor el riesgo del criterio 1 del filtro.</li>
+        <li><strong>FOGAPE y garantías estatales</strong> cubren 40–80% del financiamiento de la empresa operativa —capital de trabajo, inversión—, no la compra de sus acciones. Sirven después del cierre, para liberar caja, no para pagar el precio.</li>
+      </ul>
+
+      <h3>Vehículo</h3>
+      <p>Una SpA holding que adquiere el 100%, o el 70–80% dejando al vendedor con 20–30% durante la transición. Ese remanente minoritario es una herramienta de gestión disfrazada de estructura societaria: alinea al vendedor y te da un derecho de compra posterior a múltiplo pactado.</p>
+    </div>
+  </section>
+
+  <section id="regulatorio">
+    <div class="sec-head"><span class="sec-num">06</span><h2>El mapa regulatorio en tres piezas</h2></div>
+
+    <div class="grid g2">
+      <div class="cell">
+        <span class="n">Vigencia 1 dic 2026 · Crítico</span>
+        <h5>Ley 21.719 de datos personales</h5>
+        <p>Derechos ARCO completos, notificación de brechas en 72 horas, nueva Agencia con facultad de investigar de oficio y multas de hasta 20.000 UTM o 4% de ingresos en reincidencia. Toda tesis de IA que toque datos de clientes o trabajadores nace bajo esta ley. Auditar el cumplimiento del target es parte del due diligence, no un proyecto posterior.</p>
+      </div>
+      <div class="cell">
+        <span class="n">En el Senado · Moderado</span>
+        <h5>Proyecto de ley de IA</h5>
+        <p>Enfoque basado en riesgo en cuatro niveles, con fiscalización por la misma Agencia de Datos. Automatizar procesos administrativos internos cae en riesgo limitado o sin riesgo: no te bloquea. Lo que sí queda en alto riesgo son las decisiones automatizadas sobre personas —crédito, contratación, salud—. Si tu plan incluye eso, diséñalo con supervisión humana registrada desde el día uno.</p>
+      </div>
+      <div class="cell">
+        <span class="n">Bajo · Vigilar al consolidar</span>
+        <h5>Umbrales de la FNE</h5>
+        <p>La notificación obligatoria de una operación de concentración se gatilla sobre UF 2.500.000 de ventas conjuntas y UF 450.000 en al menos dos de las partes. Una compra individual de pyme queda muy por debajo. Si el roll-up crece, hay que recalcular antes de cada adquisición.</p>
+      </div>
+      <div class="cell">
+        <span class="n">Sectorial</span>
+        <h5>Y el regulador de tu rubro</h5>
+        <p>Registro Nacional de Administradores del Minvu para el sector 1. Registro CMF y garantía para corredoras de seguros. Nueva Ley de Seguridad Privada para el sector 5. En todos los casos, verificar que el target esté inscrito y vigente antes de firmar, no después.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="plan">
+    <div class="sec-head"><span class="sec-num">07</span><h2>Los primeros doce meses después del cierre</h2></div>
+    <div class="col">
+      <p>El error clásico es llegar el día uno a reemplazar personas con modelos. La secuencia correcta empieza por medir, porque sin línea base no tienes cómo demostrarle el ahorro al comprador que viene en cuatro años más —y esa demostración es la mitad de tu múltiplo de salida.</p>
+    </div>
+
+    <ol class="tl">
+      <li>
+        <span class="when">Días 1–30 · Medir</span>
+        <h5>Definir la unidad de trabajo y su costo</h5>
+        <p>Una sola métrica: costo por comunidad administrada, por cliente contable atendido, por póliza renovada. Se mide antes de tocar nada. Todo lo que sigue se justifica contra este número.</p>
+      </li>
+      <li>
+        <span class="when">Días 1–45 · Retener</span>
+        <h5>Hablar con los diez clientes principales y con los tres empleados que no puedes perder</h5>
+        <p>En paralelo, cerrar el cumplimiento de la Ley 21.719 —registro de tratamientos, contratos con encargados, protocolo de brechas— antes de que empiece a correr diciembre.</p>
+      </li>
+      <li>
+        <span class="when">Días 30–90 · Ordenar</span>
+        <h5>Consolidar los datos antes de automatizar nada</h5>
+        <p>Un solo repositorio de clientes, contratos y operación. Esta etapa es aburrida, no se le puede poner "IA" en el nombre, y determina si todo lo demás funciona.</p>
+      </li>
+      <li>
+        <span class="when">Meses 3–6 · Primer corte</span>
+        <h5>Automatizar los tres procesos de mayor volumen, no los más interesantes</h5>
+        <p>Típicamente: respuesta a consultas repetidas, conciliación, y generación de informes mensuales. Meta explícita: bajar 15% el costo por unidad de trabajo, con el número medido, no estimado.</p>
+      </li>
+      <li>
+        <span class="when">Meses 6–12 · Convertir en margen</span>
+        <h5>Capturar el ahorro sin despidos y crecer sobre la capacidad liberada</h5>
+        <p>La captura viene de no reemplazar salidas naturales y de vender más con la misma dotación. Despedir en el año uno te cuesta indemnizaciones, clima y la memoria operativa del negocio que acabas de comprar.</p>
+      </li>
+      <li>
+        <span class="when">Mes 12 · Preparar la siguiente</span>
+        <h5>Primer bolt-on</h5>
+        <p>La segunda compra es donde aparece el retorno de verdad: la compras a 3,5–4× y la integras a una plataforma cuyo costo marginal de atenderla ya bajó. Ahí el múltiplo consolidado empieza a moverse.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section id="salida">
+    <div class="sec-head"><span class="sec-num">08</span><h2>La salida: quién te compra y qué te va a exigir</h2></div>
+    <div class="col">
+      <p>Vender es la parte que casi nadie planifica y la que define el retorno. Los compradores realistas en Chile hacia 2030, en orden de probabilidad:</p>
+      <ul class="plain">
+        <li><strong>Fondos de capital privado middle market</strong>, locales y regionales. El capital privado ya es la mayor categoría de alternativos en Chile, con más de US$9.500 millones administrados, y los fondos están bajando de tamaño de ticket. Te van a exigir tamaño mínimo: bajo UF 20.000–25.000 de EBITDA no te miran.</li>
+        <li><strong>Un consolidador estratégico</strong> del rubro, chileno o regional, que compra tu plataforma y tu tecnología para aplicarla a su propia base.</li>
+        <li><strong>Otro search fund</strong> o family office, típicamente el comprador del escenario conservador.</li>
+      </ul>
+      <p>Los cuatro requisitos que separan un 4,5× de un 7×, y que hay que empezar a construir en el mes uno, no en el mes cuarenta:</p>
+      <ul class="plain">
+        <li>Ingreso recurrente contractual sobre 60% del total, demostrable por cohortes.</li>
+        <li>Un gerente general que no seas tú, con al menos 18 meses en el cargo.</li>
+        <li>Concentración de clientes bajo 20% en el mayor.</li>
+        <li>Ahorro por automatización <strong>medido y auditable</strong>: costo por unidad de trabajo antes y después, mes a mes. Sin esa serie, tu historia de IA es una presentación; con ella, es un múltiplo.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="riesgos">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Lo que puede matar la tesis</h2></div>
+    <div class="tw">
+      <table>
+        <thead><tr><th>Riesgo</th><th>Severidad</th><th>Mitigación concreta</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="sector">El negocio era el dueño</td>
+            <td><span class="chip crit">Fatal</span></td>
+            <td>Criterio eliminatorio 1. Además: 25–35% del precio en crédito del vendedor y earn-out a 24 meses, y contrato de transición de 12 meses con obligación de presentación a clientes.</td>
+          </tr>
+          <tr>
+            <td class="sector">Pagar de más por entrar</td>
+            <td><span class="chip crit">Fatal</span></td>
+            <td>Disciplina de múltiplo: sobre 5,5× de entrada la aritmética deja de funcionar. Buscar fuera de procesos competitivos —originación directa, no plataformas de avisos.</td>
+          </tr>
+          <tr>
+            <td class="sector">La IA rinde menos de lo prometido</td>
+            <td><span class="chip warn">Alto</span></td>
+            <td>Es lo esperable: dos tercios de los roll-ups históricos resultaron neutros o destructivos de valor, y en Chile solo 3,6% de las empresas escala IA con retorno medible. Por eso el caso base no puede depender de la IA para pagar la deuda: el negocio tiene que servir la deuda tal como lo compraste.</td>
+          </tr>
+          <tr>
+            <td class="sector">Contingencia tributaria o laboral heredada</td>
+            <td><span class="chip warn">Alto</span></td>
+            <td>Due diligence de 4–8 semanas, escrow de 15–20% por 24 meses, y declaraciones con indemnidad específica por materias tributarias y previsionales.</td>
+          </tr>
+          <tr>
+            <td class="sector">Incumplimiento de la Ley 21.719</td>
+            <td><span class="chip warn">Alto</span></td>
+            <td>Auditar antes de firmar. Si el target no cumple, es descuento de precio o condición suspensiva, no un problema para después de diciembre.</td>
+          </tr>
+          <tr>
+            <td class="sector">El ahorro se lo lleva el cliente</td>
+            <td><span class="chip warn">Alto</span></td>
+            <td>Elegir sectores donde se cobra por resultado y no por hora. Es la razón por la que las agencias quedaron últimas en la matriz.</td>
+          </tr>
+          <tr>
+            <td class="sector">Costo de la deuda y tipo de cambio</td>
+            <td><span class="chip ok">Medio</span></td>
+            <td>Deuda en pesos o UF, nunca en dólares si tus ingresos son en pesos. Cobertura de servicio de deuda mínima de 1,5× en el caso conservador, no en el base.</td>
+          </tr>
+          <tr>
+            <td class="sector">Fuga de talento post-cierre</td>
+            <td><span class="chip ok">Medio</span></td>
+            <td>Identificar en due diligence a las tres personas críticas y cerrar retención con ellas antes del anuncio, no después.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="proximo">
+    <div class="sec-head"><span class="sec-num">10</span><h2>Qué haría en las próximas cuatro semanas</h2></div>
+    <div class="col">
+      <ul class="plain">
+        <li><strong>Semana 1 — Elegir un sector y comprometerse.</strong> Administración de comunidades o BPO contable. Un search fund sin tesis de sector no consigue inversionistas ni consigue reuniones con dueños.</li>
+        <li><strong>Semana 1–2 — Construir la lista.</strong> Para administración de comunidades, el Registro Nacional de Administradores del Minvu es un directorio público de targets. Para contable, los registros gremiales y el propio SII. Meta: 150 nombres con RUT, tamaño estimado y edad del dueño.</li>
+        <li><strong>Semana 2–3 — Originación directa, no plataformas.</strong> Las empresas publicadas en portales de compraventa ya están en proceso competitivo o tienen algo mal. La cartera buena se consigue llamando en frío a dueños que no habían pensado en vender: ahí está el descuento.</li>
+        <li><strong>Semana 3–4 — Definir la estructura de capital.</strong> Decidir si vas con capital propio o con modelo search fund. Si es lo segundo, el material que necesitas es la tesis de sector, tu perfil, y estos números —no un plan de IA.</li>
+        <li><strong>En paralelo — Validar la palanca con una empresa que no vas a comprar.</strong> Ofrécele a un administrador de edificios o a un estudio contable automatizarle un proceso, gratis o casi. En seis semanas sabrás si el 15% de ahorro por unidad de trabajo es real en Chile, y lo sabrás antes de firmar un cheque de mil setecientos millones.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="fuentes">
+    <div class="sec-head"><span class="sec-num">11</span><h2>Fuentes</h2></div>
+    <ul class="sources">
+      <li>Diario Financiero — <a href="https://www.df.cl/mercados/fondos-de-inversion/negocio-de-search-funds-crece-en-chile-con-foco-en-adquisicion-de-empresas">Search funds en Chile, foco en empresas de hasta US$50 millones</a></li>
+      <li>Diario Financiero — <a href="https://www.df.cl/senal-df/senales-financieras/la-expansion-de-los-fondos-de-capital-privado-middle-market-en-la-industria">Expansión del capital privado middle market en Chile</a></li>
+      <li>Diario Financiero — <a href="https://www.df.cl/mercados/fondos-de-inversion/el-68-de-los-family-offices-en-chile-no-cuenta-con-un-plan-de-sucesion">68% de las empresas familiares sin plan de sucesión</a></li>
+      <li>IESE Business School — <a href="https://www.iese.edu/es/emprendedores/search-funds/">Estudios internacionales de search funds</a></li>
+      <li>El Líbero — <a href="https://ellibero.cl/portada/mas-de-un-30-de-las-empresas-chilenas-han-adoptado-la-ia-pero-solo-un-3-escala-sus-proyectos/">Solo 3,6% de las empresas chilenas escala proyectos de IA</a></li>
+      <li>ANDA — <a href="https://anda.cl/inteligencia-artificial-empresas-chilenas-adopcion-2026/">88% de las empresas chilenas ya interactúa con IA (SONDA Tech Trends)</a></li>
+      <li>Buk — <a href="https://www.buk.cl/blog/ley-40-horas-guia-preparacion-42-horas-abril-2026">Ley 40 horas: 42 horas desde abril de 2026</a> y <a href="https://www.buk.cl/blog/sueldo-minimo-chile-2026-guia-calculo-legal">sueldo mínimo 2026</a></li>
+      <li>Prey — <a href="https://preyproject.com/es/blog/ley-de-proteccion-de-datos-en-chile">Ley 21.719: guía de cumplimiento, vigencia 1 de diciembre de 2026</a></li>
+      <li>Diario Constitucional — <a href="https://www.diarioconstitucional.cl/2026/02/23/proyecto-de-ley-que-regula-integralmente-la-inteligencia-artificial-en-chile-prosigue-su-tramitacion-en-el-senado/">Tramitación del proyecto de ley de IA en el Senado</a></li>
+      <li>FNE — <a href="https://www.fne.gob.cl/fusiones/proceso-de-control-de-operaciones-de-concentracion/">Umbrales de notificación de operaciones de concentración</a></li>
+      <li>Minvu — <a href="https://www.minvu.gob.cl/nueva-ley-de-copropiedad-inmobiliaria/">Ley 21.442 de Copropiedad Inmobiliaria y Registro Nacional de Administradores</a></li>
+      <li>La Tercera — <a href="https://www.latercera.com/la-tercera-pm/noticia/negocio-seguro-guardia-privada-crecio-un-532-en-10-anos-y-vendio-332-539-millones/220716/">Mercado de seguridad privada en Chile</a></li>
+      <li>ICF — <a href="https://www.icf.cl/compra-de-activos-vs-compra-de-acciones-cual-elegir-en-chile/">Compra de activos vs. compra de acciones en Chile</a></li>
+      <li>Banco de Chile — <a href="https://ww3.bancochile.cl/wps/wcm/connect/pyme/portal/financiamiento/financiamiento-con-garantias-estatales">Financiamiento con garantías estatales (FOGAPE)</a></li>
+      <li>Equal VC — <a href="https://newsletter.equal.vc/p/why-most-ai-enabled-roll-ups-will">Por qué la mayoría de los roll-ups con IA va a fracasar</a></li>
+      <li>L40 — <a href="https://www.l40.com/insights/ai-rollups">AI roll-ups en 2026: Long Lake, Crescendo, Crete/Current</a></li>
+      <li>Breakwater M&amp;A — <a href="https://www.breakwaterma.com/blog/software-development-it-consulting-valuation-multiples-2026">Múltiplos de servicios y prima por ingreso recurrente</a></li>
+      <li>SII — <a href="https://www.sii.cl/valores_y_fechas/uf/uf2026.htm">Valor UF 2026</a> · <a href="https://www.sii.cl/estadisticas/empresas_tamano_ventas.htm">clasificación de empresas por tamaño</a></li>
+    </ul>
+
+    <footer class="foot">
+      <p>Informe preparado sobre fuentes públicas al 30 de agosto de 2026. Las cifras de la sección 04 son un modelo ilustrativo con supuestos explícitos, no una proyección de un activo específico. No constituye asesoría legal, tributaria ni de inversión: la estructura final de cualquier operación debe revisarse con abogado y asesor tributario chileno.</p>
+    </footer>
+  </section>
+
+</div>
