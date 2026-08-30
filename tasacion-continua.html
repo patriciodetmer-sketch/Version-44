@@ -1,0 +1,507 @@
+<title>Tasación Continua</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Roboto+Mono:wght@400;500&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+  :root{
+    --ground:#EAEEF0;
+    --surface:#FBFCFD;
+    --surface-2:#E1E7EA;
+    --ink:#0D151A;
+    --ink-soft:#37474F;
+    --muted:#5B6B75;
+    --rule:#C8D2D8;
+    --rule-soft:#DCE3E7;
+    --accent:#A85E12;
+    --accent-soft:#F2E5D5;
+    --data:#2F6C8F;
+    --data-soft:#DBE7EE;
+    --crit:#8C2F2A;
+    --crit-soft:#F1DEDC;
+    --ok:#3D6B4A;
+    --ok-soft:#DEEADF;
+
+    --max:72ch;
+    --wide:1120px;
+    --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+    --f-body:"Source Sans 3","Helvetica Neue",Arial,sans-serif;
+    --f-mono:"Roboto Mono","SF Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0D1316;
+      --surface:#151D21;
+      --surface-2:#1D262B;
+      --ink:#E3EAED;
+      --ink-soft:#BAC6CC;
+      --muted:#87959D;
+      --rule:#2A363C;
+      --rule-soft:#212B30;
+      --accent:#DE9A4E;
+      --accent-soft:#33240F;
+      --data:#71B3D6;
+      --data-soft:#14262F;
+      --crit:#DE8B85;
+      --crit-soft:#301C1A;
+      --ok:#87BC96;
+      --ok-soft:#17281B;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0D1316;
+    --surface:#151D21;
+    --surface-2:#1D262B;
+    --ink:#E3EAED;
+    --ink-soft:#BAC6CC;
+    --muted:#87959D;
+    --rule:#2A363C;
+    --rule-soft:#212B30;
+    --accent:#DE9A4E;
+    --accent-soft:#33240F;
+    --data:#71B3D6;
+    --data-soft:#14262F;
+    --crit:#DE8B85;
+    --crit-soft:#301C1A;
+    --ok:#87BC96;
+    --ok-soft:#17281B;
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .page{max-width:var(--wide);margin:0 auto;padding:0 24px 96px}
+  .col{max-width:var(--max)}
+
+  /* masthead con trama catastral */
+  .masthead{position:relative;padding:60px 0 30px;border-bottom:2px solid var(--ink);overflow:hidden}
+  .masthead::before{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+    background:
+      repeating-linear-gradient(0deg,transparent 0 39px,var(--rule-soft) 39px 40px),
+      repeating-linear-gradient(90deg,transparent 0 39px,var(--rule-soft) 39px 40px);
+    -webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.85),transparent 78%);
+    mask-image:linear-gradient(180deg,rgba(0,0,0,.85),transparent 78%);
+  }
+  .masthead > *{position:relative}
+  .kicker{font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:0 0 18px}
+  h1{font-family:var(--f-display);font-weight:700;font-size:clamp(38px,6.4vw,66px);line-height:.98;letter-spacing:-.03em;margin:0;text-wrap:balance}
+  .standfirst{font-size:clamp(17.5px,2.2vw,21px);line-height:1.5;color:var(--ink-soft);margin:20px 0 0;max-width:58ch}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 26px;margin:26px 0 0;font-family:var(--f-mono);font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+  .meta b{color:var(--ink-soft);font-weight:500}
+
+  section{padding-top:56px}
+  .sec-head{display:flex;align-items:baseline;gap:16px;border-top:1px solid var(--rule);padding-top:14px;margin-bottom:24px}
+  .sec-num{font-family:var(--f-mono);font-size:12px;color:var(--accent);letter-spacing:.06em;padding-top:5px}
+  h2{font-family:var(--f-display);font-weight:600;font-size:clamp(25px,3.5vw,34px);line-height:1.1;letter-spacing:-.022em;margin:0;text-wrap:balance}
+  h3{font-family:var(--f-display);font-weight:600;font-size:18px;letter-spacing:-.012em;margin:34px 0 10px}
+  h4{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin:0 0 12px;font-weight:500}
+  p{margin:0 0 16px;max-width:var(--max)}
+  a{color:var(--data);text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+  a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+  strong{font-weight:600}
+  em.term{font-style:normal;font-family:var(--f-mono);font-size:.88em;background:var(--surface-2);padding:1px 5px;border-radius:2px}
+
+  ul.plain{margin:0 0 16px;padding-left:0;list-style:none;max-width:var(--max);display:flex;flex-direction:column;gap:11px}
+  ul.plain > li{padding-left:22px;position:relative}
+  ul.plain > li::before{content:"";position:absolute;left:2px;top:.66em;width:8px;height:1.5px;background:var(--accent)}
+
+  /* stat strip: hechos medidos */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft);margin:24px 0}
+  .stat{background:var(--surface);padding:18px 20px}
+  .stat .v{font-family:var(--f-display);font-weight:700;font-size:29px;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .stat .v small{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--muted)}
+  .stat .l{font-size:13.5px;color:var(--ink-soft);margin-top:8px;line-height:1.35}
+  .stat .s{font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+
+  .verdict{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--accent);padding:26px 28px;margin:30px 0 0}
+  .verdict h4{color:var(--accent)}
+  .verdict .lead{font-family:var(--f-display);font-weight:600;font-size:21px;line-height:1.35;letter-spacing:-.015em;margin-bottom:14px}
+  .verdict p:last-child{margin-bottom:0}
+
+  .grid{display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft);margin:20px 0}
+  .grid.g2{grid-template-columns:repeat(auto-fit,minmax(268px,1fr))}
+  .cell{background:var(--surface);padding:20px 22px}
+  .cell .n{font-family:var(--f-mono);font-size:10.5px;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:8px}
+  .cell h5{margin:0 0 8px;font-size:16px;font-weight:600;font-family:var(--f-display);letter-spacing:-.01em}
+  .cell p{font-size:14.5px;color:var(--ink-soft);margin:0}
+
+  /* capas del producto */
+  .layers{display:flex;flex-direction:column;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft);margin:22px 0}
+  .layer{background:var(--surface);padding:20px 22px;display:grid;grid-template-columns:64px 1fr;gap:18px;align-items:start}
+  .layer .tag{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;color:var(--surface);background:var(--data);padding:5px 0;text-align:center;border-radius:2px;font-weight:500}
+  .layer:first-child .tag{background:var(--accent)}
+  .layer h5{margin:0 0 6px;font-family:var(--f-display);font-size:17px;font-weight:600;letter-spacing:-.012em}
+  .layer p{margin:0 0 8px;font-size:14.5px;color:var(--ink-soft)}
+  .layer .who{font-family:var(--f-mono);font-size:11px;color:var(--muted);letter-spacing:.02em}
+
+  .tw{overflow-x:auto;margin:20px 0 8px;border:1px solid var(--rule)}
+  table{border-collapse:collapse;width:100%;background:var(--surface);font-size:14.5px}
+  caption{caption-side:bottom;text-align:left;font-size:12.5px;color:var(--muted);padding:10px 2px 0}
+  th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+  thead th{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--surface-2);border-bottom:1px solid var(--rule);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  td.k{font-weight:600;min-width:170px}
+  tr.total td{background:var(--surface-2);font-weight:600;border-top:1px solid var(--rule)}
+
+  .chip{display:inline-block;font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:2px;font-weight:500;white-space:nowrap}
+  .chip.ok{background:var(--ok-soft);color:var(--ok)}
+  .chip.warn{background:var(--accent-soft);color:var(--accent)}
+  .chip.crit{background:var(--crit-soft);color:var(--crit)}
+
+  /* bar chart de una serie */
+  figure.chart{margin:22px 0 8px;background:var(--surface);border:1px solid var(--rule);padding:22px 24px 18px}
+  figure.chart figcaption{font-size:13px;color:var(--muted);margin-top:14px;padding-top:12px;border-top:1px solid var(--rule-soft)}
+  .chart h4{margin-bottom:16px}
+  .bars{display:flex;flex-direction:column;gap:9px}
+  .bar-row{display:grid;grid-template-columns:52px 1fr 74px;align-items:center;gap:14px}
+  .bar-row .yr{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .bar-track{height:15px;background:var(--surface-2);border-radius:2px;overflow:hidden}
+  .bar-fill{height:100%;background:var(--data);border-radius:0 4px 4px 0}
+  .bar-row .val{font-family:var(--f-mono);font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+
+  .note{border-left:2px solid var(--accent);background:var(--accent-soft);padding:16px 20px;margin:22px 0;max-width:var(--max);font-size:15px}
+  .note p{margin:0}
+  .note p + p{margin-top:10px}
+  .note strong{color:var(--accent)}
+  .note.stop{border-left-color:var(--crit);background:var(--crit-soft)}
+  .note.stop strong{color:var(--crit)}
+
+  .tl{list-style:none;margin:20px 0 0;padding:0;border-left:1px solid var(--rule);max-width:var(--max)}
+  .tl li{position:relative;padding:0 0 26px 26px}
+  .tl li::before{content:"";position:absolute;left:-4.5px;top:9px;width:8px;height:8px;border-radius:50%;background:var(--ground);border:1.5px solid var(--accent)}
+  .tl .when{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:4px}
+  .tl h5{margin:0 0 6px;font-size:16px;font-weight:600;font-family:var(--f-display);letter-spacing:-.01em}
+  .tl p{font-size:14.5px;color:var(--ink-soft);margin:0}
+
+  .sources{font-size:13.5px;color:var(--muted);columns:2;column-gap:40px;max-width:var(--wide);padding-left:18px}
+  .sources li{break-inside:avoid;margin-bottom:8px}
+  footer.foot{margin-top:60px;border-top:1px solid var(--rule);padding-top:20px;font-size:13px;color:var(--muted)}
+  @media (max-width:720px){
+    .sources{columns:1}
+    .page{padding:0 18px 72px}
+    .layer{grid-template-columns:1fr;gap:10px}
+    .layer .tag{width:64px}
+    .bar-row{grid-template-columns:46px 1fr 66px;gap:10px}
+  }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <p class="kicker">Tesis de creación · Chile · agosto 2026</p>
+    <h1>Tasación<br>continua</h1>
+    <p class="standfirst">Ya tienes el activo más caro de construir: nueve millones de propiedades y dos millones y medio de transacciones reales. Falta convertirlo en la empresa que los bancos chilenos van a estar obligados a contratar antes de enero de 2028.</p>
+    <div class="meta">
+      <span><b>Modelo</b> Data / API + SaaS</span>
+      <span><b>Comprador</b> Instituciones financieras</span>
+      <span><b>Reloj</b> Capítulo 21-10 RAN · 1 ene 2028</span>
+      <span><b>Año 1</b> ≈ CLP 400 MM</span>
+    </div>
+  </header>
+
+  <section id="resumen">
+    <div class="sec-head"><span class="sec-num">00</span><h2>La recomendación, en una frase</h2></div>
+
+    <div class="verdict col">
+      <h4>Qué crear</h4>
+      <p class="lead">Una empresa de infraestructura de valorización de garantías inmobiliarias: una API y una plataforma que le dicen a bancos, cooperativas, cajas, mutuarias y aseguradoras cuánto vale hoy cada propiedad de su cartera, con respaldo auditable.</p>
+      <p>No es una idea que se te tenga que ocurrir: <strong>es la única cosa que tu data puede hacer y que casi nadie más en Chile puede hacer</strong>. Y tiene fecha de vencimiento a favor, porque en julio de 2026 la CMF publicó la norma que obliga a los bancos a revalorizar sus garantías con criterios uniformes y frecuencias mínimas, a partir del 1 de enero de 2028.</p>
+      <p>El modelo es <strong>data y software, no servicio</strong>. Te lo recomiendo yo porque me dijiste que no tenías preferencia, y en este caso la respuesta no es de gusto: tu ventaja es un activo de datos que se copia con mucha dificultad, y ese activo se monetiza por acceso recurrente, no por horas.</p>
+    </div>
+  </section>
+
+  <section id="activo">
+    <div class="sec-head"><span class="sec-num">01</span><h2>Lo que ya tienes, medido</h2></div>
+    <div class="col">
+      <p>Estas cifras no vienen del catálogo ni de una descripción: las consulté directamente contra tu base mientras preparaba esto.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="v">9.710.416</div>
+        <div class="l">propiedades en el catastro</div>
+        <div class="s">347 comunas · todo Chile</div>
+      </div>
+      <div class="stat">
+        <div class="v">2.516.362</div>
+        <div class="l">transacciones reales con precio en UF</div>
+        <div class="s">ene 2010 – jul 2026 · 346 comunas</div>
+      </div>
+      <div class="stat">
+        <div class="v">6.116.001</div>
+        <div class="l">propiedades habitacionales</div>
+        <div class="s">el universo de garantía hipotecaria</div>
+      </div>
+      <div class="stat">
+        <div class="v">8.905.787</div>
+        <div class="l">propiedades con coordenadas</div>
+        <div class="s">91,7% de cobertura geográfica</div>
+      </div>
+      <div class="stat">
+        <div class="v">$800.800 <small>MM</small></div>
+        <div class="l">contribuciones anuales representadas</div>
+        <div class="s">base para el negocio puente</div>
+      </div>
+    </div>
+
+    <div class="col">
+      <p>A eso se suman las piezas que ya funcionan: un modelo de tasación automática, resolución de dirección a ROL, imágenes satelitales y de fachada, y el histórico de avisos del Portal Inmobiliario. Y <strong>Leasit</strong>, que es un motor de evaluación de crédito con extracción de estados financieros por IA — hoy una aplicación suelta, pero es la mitad que falta de una decisión de crédito.</p>
+
+      <h3>Y lo que no tienes</h3>
+      <p>Conviene decirlo de entrada, porque define el trabajo del primer año: no tienes clientes institucionales, no tienes una medición publicada de la precisión de tu tasador contra transacciones reales, no tienes las certificaciones ni el expediente de proveedor que un banco exige, y no tienes equipo comercial que sepa vender a un área de riesgo. Nada de eso es data. Todo eso es lo que se compra con el capital que dijiste tener.</p>
+    </div>
+  </section>
+
+  <section id="reloj">
+    <div class="sec-head"><span class="sec-num">02</span><h2>El evento regulatorio que crea el negocio</h2></div>
+    <div class="col">
+      <p>El 14 de julio de 2026 la CMF emitió la <strong>Circular N°2.373</strong>, que incorpora el <strong>Capítulo 21-10 a la Recopilación Actualizada de Normas para Bancos</strong>, sobre garantías como mitigadores de riesgo de crédito. Entre otras cosas, fija criterios uniformes para determinar el valor comercial, el valor ajustado y el valor mitigador de las garantías, y —esto es lo importante— <strong>frecuencias mínimas de revalorización</strong>. Entra en vigencia el <strong>1 de enero de 2028</strong>.</p>
+      <p>Traducido: cada banco chileno tiene unos dieciséis meses para resolver cómo revaloriza periódicamente toda su cartera de garantías hipotecarias, de forma consistente, documentada y defendible ante el supervisor. Nadie revaloriza doscientas mil propiedades mandando tasadores a terreno a 2–5 UF cada una y 3 a 5 días hábiles por informe. La aritmética no da: es un problema que solo se resuelve con un modelo.</p>
+
+      <h3>Por qué esto no es una apuesta</h3>
+      <p>Europa ya recorrió exactamente este camino. Las directrices de la EBA sobre originación y seguimiento de créditos incorporaron criterios explícitos para el uso de <em class="term">advanced statistical models</em> en valorización, revalorización y monitoreo de garantías, y la CRR3 los adoptó. Las condiciones que exigen son tres, y vale la pena leerlas con tu base al lado:</p>
+      <ul class="plain">
+        <li><strong>Especificidad geográfica suficiente</strong> — tú tienes coordenadas en 8,9 millones de propiedades.</li>
+        <li><strong>Backtesting contra precios de transacción efectivamente observados</strong> — tú tienes 2,5 millones de escrituraciones con precio en UF.</li>
+        <li><strong>Muestra grande y representativa de precios observados</strong> — 346 comunas, dieciséis años de historia.</li>
+      </ul>
+      <p>Esa tercera condición es la que separa tu activo del resto del mercado. Un tasador automático construido sobre avisos de portales estima <strong>lo que alguien pide</strong>. La norma europea —y el sentido común de un supervisor— exige <strong>lo que alguien efectivamente pagó</strong>. Toctoc, Propiteq y las plataformas de avisos viven del primer dato. El Conservador de Bienes Raíces es el segundo, y es lo que tú tienes.</p>
+    </div>
+
+    <div class="note stop col">
+      <p><strong>Lo primero que hay que verificar, antes que cualquier otra cosa.</strong> No pude leer el texto completo del Capítulo 21-10 desde acá: el sitio de la CMF está bloqueado en este entorno. La pregunta que define si el negocio existe es una sola: <strong>¿admite el 21-10 la revalorización por modelos automatizados o exige tasación individual por un tasador registrado?</strong> Si la admite —como hace Europa— tienes una empresa. Si la exige presencial, tienes un producto de apoyo a la decisión, que vale bastante menos. Es una lectura de una tarde con un abogado regulatorio, y va antes de contratar a nadie.</p>
+    </div>
+  </section>
+
+  <section id="producto">
+    <div class="sec-head"><span class="sec-num">03</span><h2>El producto, en tres capas</h2></div>
+    <div class="col">
+      <p>Se construyen en este orden. Cada capa se puede vender sola, y cada una hace más valiosa a la siguiente.</p>
+    </div>
+
+    <div class="layers">
+      <div class="layer">
+        <span class="tag">Capa 1</span>
+        <div>
+          <h5>Valorización puntual por API</h5>
+          <p>Entra un ROL o una dirección, sale un valor estimado en UF con banda de confianza y la lista de comparables que lo sustentan. Trazable: quien recibe el número puede ver de qué transacciones salió. Se cobra por consulta.</p>
+          <p class="who">Compra: originación de crédito, corredores, tasadores que quieren pre-filtrar, portales.</p>
+        </div>
+      </div>
+      <div class="layer">
+        <span class="tag">Capa 2</span>
+        <div>
+          <h5>Monitoreo continuo de cartera</h5>
+          <p>El cliente carga su cartera de garantías una vez. Recibe revalorización a la frecuencia que le exige la norma, alertas cuando un LTV cruza un umbral, y el expediente auditable que necesita mostrarle al supervisor. Contrato anual por cartera. <strong>Este es el negocio.</strong></p>
+          <p class="who">Compra: riesgo de crédito y cumplimiento de bancos, cooperativas, cajas, mutuarias, leasing.</p>
+        </div>
+      </div>
+      <div class="layer">
+        <span class="tag">Capa 3</span>
+        <div>
+          <h5>Riesgo físico del inmueble</h5>
+          <p>Material de construcción predominante, año de construcción, superficie y geolocalización cruzados con exposición a incendio, sismo e inundación. En Chile el seguro de incendio y sismo es obligatorio en todo crédito hipotecario, y hoy se tarifica con mucho menos detalle del que tú ya tienes en el catastro.</p>
+          <p class="who">Compra: compañías de seguros generales, reaseguro, áreas de suscripción.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <h3>Dónde entra Leasit</h3>
+      <p>Leasit no es otro negocio: es la mitad complementaria. Tu data valoriza <strong>la garantía</strong>; Leasit evalúa <strong>al deudor</strong>. Un banco o una leasing que compra las dos cosas compra la decisión de crédito completa, y ese es un producto mucho más difícil de reemplazar que cualquiera de los dos por separado.</p>
+      <p>Ahora, la versión actual de Leasit es un prototipo, no un producto: es una aplicación donde el analista pega su propia clave de API en el navegador para que la IA extraiga los estados financieros. Eso demuestra la idea y no sobrevive a la primera revisión de seguridad de un banco. Convertirlo en producto significa mover el procesamiento al servidor, dejar registro de cada decisión y de qué modelo la produjo, y conectarlo a la valorización del activo en garantía. Es trabajo conocido, no investigación.</p>
+    </div>
+  </section>
+
+  <section id="clientes">
+    <div class="sec-head"><span class="sec-num">04</span><h2>A quién le vendes, y en qué orden</h2></div>
+    <div class="col">
+      <p>La tentación es partir por los bancos grandes. Es el error: tienen equipos internos, ciclos de compra de más de un año y te van a pedir referencias que todavía no tienes. Se parte por abajo.</p>
+    </div>
+
+    <div class="tw">
+      <table>
+        <thead><tr><th>Segmento</th><th>Por qué compra</th><th>Dificultad de venta</th><th>Orden</th></tr></thead>
+        <tbody>
+          <tr><td class="k">Cooperativas de ahorro y crédito supervisadas</td><td>Tienen cartera hipotecaria y ninguna capacidad interna de valorización masiva. Les llega la misma exigencia normativa sin el equipo para resolverla.</td><td><span class="chip ok">Baja</span></td><td class="num">1</td></tr>
+          <tr><td class="k">Mutuarias y administradoras de mutuos endosables</td><td>Su negocio entero es la garantía hipotecaria. Valorizar bien es su margen, no su cumplimiento.</td><td><span class="chip ok">Baja</span></td><td class="num">1</td></tr>
+          <tr><td class="k">Leasing y factoring no bancario</td><td>Industria en crecimiento de dos dígitos, con garantías reales y poca infraestructura de riesgo. Y es donde Leasit ya habla el idioma.</td><td><span class="chip ok">Baja</span></td><td class="num">2</td></tr>
+          <tr><td class="k">Cajas de compensación</td><td>Crédito social con garantía y volumen alto de operaciones chicas.</td><td><span class="chip warn">Media</span></td><td class="num">2</td></tr>
+          <tr><td class="k">Compañías de seguros generales</td><td>Tarificación de incendio y sismo sobre datos de construcción que hoy no tienen a nivel de propiedad.</td><td><span class="chip warn">Media</span></td><td class="num">3</td></tr>
+          <tr><td class="k">Bancos</td><td>El obligado por el 21-10 y el contrato grande. Llegas con tres referencias y una medición de precisión publicada, no antes.</td><td><span class="chip crit">Alta</span></td><td class="num">4</td></tr>
+          <tr><td class="k">Fondos inmobiliarios y administradoras de fondos</td><td>Valorización periódica de activos en cartera para reporte a aportantes.</td><td><span class="chip warn">Media</span></td><td class="num">4</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <figure class="chart">
+      <h4>Flujo anual de transacciones en tu base</h4>
+      <div class="bars">
+        <div class="bar-row"><span class="yr">2019</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="val">204.708</span></div>
+        <div class="bar-row"><span class="yr">2020</span><div class="bar-track"><div class="bar-fill" style="width:79.1%"></div></div><span class="val">161.922</span></div>
+        <div class="bar-row"><span class="yr">2021</span><div class="bar-track"><div class="bar-fill" style="width:99.9%"></div></div><span class="val">204.510</span></div>
+        <div class="bar-row"><span class="yr">2022</span><div class="bar-track"><div class="bar-fill" style="width:78.9%"></div></div><span class="val">161.570</span></div>
+        <div class="bar-row"><span class="yr">2023</span><div class="bar-track"><div class="bar-fill" style="width:61.1%"></div></div><span class="val">125.067</span></div>
+        <div class="bar-row"><span class="yr">2024</span><div class="bar-track"><div class="bar-fill" style="width:50.2%"></div></div><span class="val">102.719</span></div>
+        <div class="bar-row"><span class="yr">2025</span><div class="bar-track"><div class="bar-fill" style="width:65.1%"></div></div><span class="val">133.290</span></div>
+      </div>
+      <figcaption>Compraventas inscritas con precio en UF, años completos. 2026 va en 51.412 al 3 de julio. El repunte de 2025 coincide con la caída de las tasas hipotecarias bajo 4% por primera vez desde 2021: más originación significa más tasaciones y más carteras que revalorizar.</figcaption>
+    </figure>
+  </section>
+
+  <section id="plata">
+    <div class="sec-head"><span class="sec-num">05</span><h2>Cómo se cobra y cuánto puede valer</h2></div>
+    <div class="col">
+      <p>Los precios que siguen son mi propuesta, no un dato de mercado: en Chile no hay referencia pública porque el producto no existe todavía. El anclaje es la alternativa que el cliente tiene hoy, que es una tasación presencial de 2 a 5 UF.</p>
+    </div>
+
+    <div class="tw">
+      <table>
+        <caption>Propuesta de estructura de precios. La conversión usa UF $40.874 al 31 de agosto de 2026.</caption>
+        <thead><tr><th>Producto</th><th class="num">Precio unitario</th><th>Unidad</th><th>Comparación</th></tr></thead>
+        <tbody>
+          <tr><td class="k">Valorización por API</td><td class="num">UF 0,03 – 0,08</td><td>por consulta</td><td>Una tasación presencial cuesta UF 2–5. Estás vendiendo a menos del 2% del precio del sustituto.</td></tr>
+          <tr><td class="k">Monitoreo de cartera</td><td class="num">UF 0,02 – 0,05</td><td>por garantía revalorizada</td><td>Con mínimo anual contratado. Es ingreso recurrente y crece con la cartera del cliente.</td></tr>
+          <tr><td class="k">Riesgo físico</td><td class="num">UF 0,05 – 0,12</td><td>por propiedad suscrita</td><td>Se cobra más porque evita siniestros mal tarificados, no porque cueste más producirlo.</td></tr>
+          <tr><td class="k">Motor de originación</td><td class="num">UF 400 – 1.500</td><td>por institución al año</td><td>Leasit como módulo, con la valorización incluida.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col">
+      <h3>Qué significa eso en contratos concretos</h3>
+      <ul class="plain">
+        <li><strong>Un banco mediano</strong> con 150.000 garantías revalorizadas dos veces al año, a UF 0,03: <strong>UF 9.000 al año</strong>, unos CLP 368 millones. Es un contrato que para el banco es barato comparado con no cumplir, y para ti es más que el sueldo de todo el equipo.</li>
+        <li><strong>Una cooperativa o mutuaria</strong> con 8.000 a 30.000 garantías: entre <strong>UF 400 y UF 1.800 al año</strong>. Contratos chicos, pero se cierran en meses en vez de años y son los que te dan las referencias.</li>
+        <li><strong>Cinco clientes medianos</strong> más quince chicos te ponen sobre <strong>UF 50.000 anuales</strong> de ingreso casi enteramente recurrente, con costo marginal por cliente cercano a cero.</li>
+      </ul>
+
+      <h3>El costo del año 1</h3>
+      <p>Con equipo chico y bueno: dos personas de datos y modelos, una de producto e ingeniería, una de riesgo y regulación —el perfil que sabe hablar con un área de cumplimiento— y una comercial con red en instituciones financieras. Sumando infraestructura, legal y la auditoría de precisión, el año 1 cuesta del orden de <strong>CLP 400 millones</strong>. El año 1 casi no factura institucional: el ciclo de venta a una entidad financiera va de nueve a dieciocho meses. Eso hay que financiarlo, y para eso está la sección siguiente.</p>
+    </div>
+  </section>
+
+  <section id="puente">
+    <div class="sec-head"><span class="sec-num">06</span><h2>La caja puente: el reavalúo 2026</h2></div>
+    <div class="col">
+      <p>Está ocurriendo ahora. El SII está aplicando el <strong>Reavalúo No Agrícola 2026</strong>, que actualiza el avalúo fiscal de todo el catastro no agrícola con efecto desde el 1 de enero de 2026. Cuando el propietario no está de acuerdo, puede pedir una reposición administrativa dentro de los 30 días hábiles siguientes al término de la exhibición del rol en la municipalidad, o reclamar ante el Tribunal Tributario y Aduanero dentro de 180 días.</p>
+      <p>Con tu catastro y tu tasador puedes hacer algo que nadie más puede: <strong>cruzar el avalúo fiscal nuevo contra el valor de mercado estimado de cada propiedad y encontrar, masivamente, a los sobrevalorados</strong>. Esa lista es el negocio: le ofreces al propietario gestionar el reclamo a cambio de un porcentaje del ahorro en contribuciones. Es el modelo que en Estados Unidos construyó una industria completa de apelación de impuesto territorial.</p>
+      <div class="note">
+        <p><strong>Pero es el puente, no la empresa.</strong> Requiere abogado y perito, tiene estacionalidad brutal —vive de ventanas de días hábiles—, es intensivo en atención al cliente y se valoriza como servicio, no como infraestructura. Sirve para financiar los dieciocho meses de venta institucional y para probar tu modelo contra miles de casos reales. Si te enamoras de él y se convierte en el negocio principal, terminaste con una empresa de servicios de márgenes medios en vez de la que vale la pena construir.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="riesgos">
+    <div class="sec-head"><span class="sec-num">07</span><h2>Lo que puede matar esto</h2></div>
+    <div class="tw">
+      <table>
+        <thead><tr><th>Riesgo</th><th>Severidad</th><th>Qué hacer</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="k">Los derechos sobre la data del Conservador</td>
+            <td><span class="chip crit">Existencial</span></td>
+            <td>Es el riesgo número uno, por encima del regulatorio. Hay actores en el mercado que declaran acceso exclusivo a datos de conservadores. Antes de levantar capital o firmar con un banco, necesitas la cadena de licencia por escrito: de dónde viene cada tabla, con qué derecho la explotas comercialmente, y qué pasa si la fuente te corta. Un comprador o un inversionista serio lo va a preguntar en la primera semana de due diligence, y sin respuesta no hay operación.</td>
+          </tr>
+          <tr>
+            <td class="k">Que el 21-10 exija tasación individual</td>
+            <td><span class="chip crit">Alta</span></td>
+            <td>Leer el texto con abogado regulatorio esta semana. Si exige tasador presencial, el pivote es evidente y sigue siendo buen negocio: te vuelves el proveedor de datos y pre-tasación de las tasadoras, y el producto principal pasa a ser la Capa 1 y la Capa 3.</td>
+          </tr>
+          <tr>
+            <td class="k">Ley 21.719 de datos personales</td>
+            <td><span class="chip crit">Alta</span></td>
+            <td>Vigente el 1 de diciembre de 2026, con multas de hasta 20.000 UTM. Si tus tablas del Conservador contienen nombres o RUT de las partes, estás tratando datos personales a escala de millones. Hay que auditarlo y resolverlo ahora, no después de tener clientes bancarios.</td>
+          </tr>
+          <tr>
+            <td class="k">Precisión no demostrada</td>
+            <td><span class="chip warn">Media</span></td>
+            <td>Ningún área de riesgo compra un modelo sin error medido. Hay que publicar un backtest serio: error absoluto medio y porcentaje dentro de ±10% contra transacciones reales que el modelo nunca vio, desagregado por comuna y por tipo de propiedad. Es el primer entregable del equipo, antes que cualquier funcionalidad.</td>
+          </tr>
+          <tr>
+            <td class="k">Ciclo de venta y evaluación de proveedor</td>
+            <td><span class="chip warn">Media</span></td>
+            <td>Un banco que externaliza un servicio relevante debe evaluarte como proveedor crítico: continuidad operacional, seguridad, salida ordenada. Prepara ese expediente antes de la primera reunión; es lo que hace que un piloto no muera en la etapa legal.</td>
+          </tr>
+          <tr>
+            <td class="k">Concentración de compradores</td>
+            <td><span class="chip warn">Media</span></td>
+            <td>Son pocas instituciones y negocian fuerte. Se compensa con las tres capas: si el mismo dato se vende a bancos, aseguradoras y fondos, ningún cliente te tiene tomado.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="plan">
+    <div class="sec-head"><span class="sec-num">08</span><h2>Los primeros 90 días</h2></div>
+    <ol class="tl">
+      <li>
+        <span class="when">Semana 1</span>
+        <h5>Las dos lecturas que definen todo</h5>
+        <p>El texto del Capítulo 21-10 con un abogado regulatorio, y la cadena de licencia de tus datos del Conservador con tu abogado. Si cualquiera de las dos sale mal, cambia el plan entero. Nada más parte antes de esto.</p>
+      </li>
+      <li>
+        <span class="when">Semanas 2–5</span>
+        <h5>Medir tu propio tasador</h5>
+        <p>Backtest contra transacciones reales que el modelo no vio, por comuna y tipo. El número que salga —bueno o malo— es tu producto. Si el error es alto en comunas chicas, eso define dónde puedes vender el año 1 y dónde no.</p>
+      </li>
+      <li>
+        <span class="when">Semanas 3–8</span>
+        <h5>Cinco conversaciones, cero venta</h5>
+        <p>Dos cooperativas, una mutuaria, una leasing, una aseguradora. No a vender: a preguntar cómo revalorizan hoy, qué les dijo su auditor sobre el 21-10 y qué pagarían por no tener que resolverlo. Esas cinco conversaciones valen más que seis meses de desarrollo.</p>
+      </li>
+      <li>
+        <span class="when">Semanas 4–10</span>
+        <h5>Levantar la operación de contribuciones</h5>
+        <p>El cruce masivo de avalúo fiscal contra valor de mercado, el abogado y el flujo de captación. Es lo que financia el año, y de paso somete tu modelo a miles de casos con consecuencia real.</p>
+      </li>
+      <li>
+        <span class="when">Semanas 8–13</span>
+        <h5>Un piloto pagado</h5>
+        <p>Una institución chica, su cartera real, revalorización y expediente auditable. Pagado aunque sea poco: un piloto gratis no prueba nada, ni para ti ni para el próximo cliente al que se lo cuentes.</p>
+      </li>
+      <li>
+        <span class="when">Mes 3</span>
+        <h5>Recién ahí, el equipo</h5>
+        <p>Con la lectura regulatoria hecha, la precisión medida y un piloto firmado, contratar. Al revés —contratar primero y averiguar después— es como se queman los CLP 400 millones sin aprender nada.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section id="salida">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Por qué esto vale, si sale</h2></div>
+    <div class="col">
+      <p>El mundo ya tiene comparables de esta empresa exacta. <strong>CoreLogic</strong> cubre el 99% de las propiedades de Estados Unidos. <strong>HouseCanary</strong> vende su tasador automático a siete bancos de inversión de Wall Street. <strong>PriceHubble</strong> hace precisamente esto en once mercados europeos, y creció al alero de la misma norma que Chile va a aplicar en 2028.</p>
+      <p>Ninguna de esas tres es una empresa de servicios: son infraestructura de datos con ingreso recurrente, y por eso se valorizan como software y no como consultoría. Un negocio de servicios inmobiliarios en Chile se vende a 4–6 veces EBITDA. Una empresa de datos con contratos recurrentes con instituciones financieras juega en otra liga, y el comprador natural no es solo local: es cualquiera de los tres nombres de arriba buscando entrar a Chile sin construir dieciséis años de historia de escrituraciones.</p>
+      <p>Eso último es lo que de verdad tienes. El modelo se puede replicar; el equipo se puede contratar. <strong>Dos millones y medio de transacciones desde 2010 no se pueden apurar con capital.</strong></p>
+    </div>
+  </section>
+
+  <section id="fuentes">
+    <div class="sec-head"><span class="sec-num">10</span><h2>Fuentes</h2></div>
+    <ul class="sources">
+      <li>Carey — <a href="https://www.carey.cl/cmf-emite-nuevas-normas-sobre-garantias-como-mitigadores-de-riesgo-de-credito">CMF emite nuevas normas sobre garantías como mitigadores de riesgo de crédito (Circular N°2.373, Capítulo 21-10 RAN)</a></li>
+      <li>CMF — <a href="https://www.cmfchile.cl/portal/prensa/625/w4-article-89303.html">Requisitos y condiciones mínimas de las garantías como mitigadores de riesgo de crédito</a></li>
+      <li>EBA — <a href="https://service.betterregulation.com/document/443939">Guidelines on loan origination and monitoring, §7.4: criterios para modelos estadísticos avanzados de valorización</a></li>
+      <li>PriceHubble — <a href="https://www.pricehubble.com/use-cases/eba-guidelines">Cómo se cumplen las directrices EBA con un AVM</a></li>
+      <li>European Mortgage Federation — <a href="https://hypo.org/sites/default/files/2025-08/AVM-Survey-Version-14-May-2025.pdf">Joint Paper on the Use of Automated Valuation Models in Europe (2025)</a></li>
+      <li>SII — <a href="https://www.sii.cl/destacados/reavaluo/">Mi Reavalúo, Impuesto Territorial</a> · <a href="https://www.sii.cl/destacados/reavaluo/2024/4439-4445.html">Procedimiento de impugnación de avalúos</a></li>
+      <li>MOS Abogados — <a href="https://www.mosabogados.cl/reavaluo-de-bienes-raices-2025-y-2026-en-que-consiste-cuando-se-aplica-y-como-reclamar-si-no-estas-de-acuerdo/">Reavalúo 2025–2026: plazos de reposición administrativa y reclamo ante el TTA</a></li>
+      <li>Tinsa Chile — <a href="https://www.tinsa.cl/que-es-tasacion-bancaria/">Qué es la tasación bancaria</a> · <a href="https://www.tinsa.cl/cuanto-cobra-un-perito-tasador-inmobiliario/">cuánto cobra un perito tasador</a></li>
+      <li>Colliers — <a href="https://tasaciones.colliers.cl/2025/11/13/tasacion-banco-lo-que-necesitas-saber-antes-de-tu-credito-hipotecario/">Tasación bancaria en Chile: costos y plazos</a></li>
+      <li>CFL — <a href="https://www.cfl.cl/2026/06/10/baja-tasas-hipotecarias-chile-2026/">Tasas hipotecarias bajo 4% por primera vez desde 2021</a></li>
+      <li>La Tercera — <a href="https://www.latercera.com/pulso/noticia/cerca-de-us1000-millones-colocaciones-de-empresas-de-financiamiento-no-bancario-crecen-a-2-digitos-en-primer-trimestre/">Colocaciones del financiamiento no bancario crecen a dos dígitos</a></li>
+      <li>CMF Educa — <a href="https://www.cmfchile.cl/educa/621/w3-article-1753.html">Seguros asociados a créditos hipotecarios (incendio y sismo obligatorios)</a></li>
+      <li>CMF — <a href="https://www.cmfchile.cl/institucional/mercados/consulta.php?mercado=B&entidad=BCCOO&Estado=VI">Listado de cooperativas de ahorro y crédito supervisadas</a></li>
+      <li>Prey — <a href="https://preyproject.com/es/blog/ley-de-proteccion-de-datos-en-chile">Ley 21.719: vigencia 1 de diciembre de 2026 y régimen de multas</a></li>
+      <li>HouseCanary — <a href="https://www.housecanary.com/industries/capital-markets">AVM para mercados de capitales</a> · CoreLogic vía <a href="https://www.attomdata.com/news/company-news/delivery-solutions/top-5-property-data-avms/">ATTOM</a></li>
+      <li>Redalyc — <a href="https://www.redalyc.org/journal/198/19878423006/html/">Estudio sobre acceso a datos del CBR en el mercado de vivienda de Santiago (referencia a InCiti)</a></li>
+    </ul>
+
+    <footer class="foot">
+      <p>Las cifras de la sección 01 fueron consultadas directamente contra la base <span style="font-family:var(--f-mono);font-size:12.5px">datainmobiliaria</span> el 30 de agosto de 2026. Los precios de la sección 05 son una propuesta razonada, no un dato de mercado observado. Este informe no constituye asesoría legal, regulatoria ni de inversión: las dos verificaciones de la sección 08, semana 1, deben hacerse con abogado antes de comprometer capital.</p>
+    </footer>
+  </section>
+
+</div>
